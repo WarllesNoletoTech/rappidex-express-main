@@ -18,7 +18,7 @@ export const Content = styled.section`
   color: ${(props) => props.theme['gray-100']};
 
   h1 {
-    color: ${(props) => props.theme['green-300']};
+    color: ${(props) => props.theme['brand-yellow-hover']};
     font-size: 1.5rem;
     margin-bottom: 1rem;
   }
@@ -35,7 +35,7 @@ export const Content = styled.section`
   }
 
   a {
-    color: ${(props) => props.theme['green-300']};
+    color: ${(props) => props.theme['brand-yellow-hover']};
   }
 
   @media (max-width: 768px) {

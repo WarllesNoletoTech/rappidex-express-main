@@ -1,107 +1,118 @@
 import styled from 'styled-components'
-import InputMask from 'react-input-mask';
+import InputMask from 'react-input-mask'
 
 export const Container = styled.main`
   flex: 1;
   width: 100%;
-  /* min-width: 17rem; */
-  display: grid;
-  align-items: center;
+  display: flex;
   justify-content: center;
-
-  margin-top: 2rem;
-  
-  background: ${(props) => props.theme['gray-600']};
+  align-items: flex-start;
+  padding: clamp(1rem, 3vw, 2rem) 1rem 2rem;
 
   form {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin-top: 2rem;
+    width: min(100%, 34rem);
   }
 `
 
 export const FormContainer = styled.div`
-  min-width: 15rem;
+  width: 100%;
   display: flex;
   flex-direction: column;
+  gap: 0.85rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
   color: ${(props) => props.theme['gray-100']};
-  font-size: 1.125rem;
-  font-weight: bold;
-  
-  gap: 1rem;
+  background: linear-gradient(145deg, ${(props) => props.theme['gray-700']}, ${(props) => props.theme['gray-800']});
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: ${(props) => props.theme['radius-xl']};
+  box-shadow: ${(props) => props.theme['shadow-card']};
 
   label {
-    font-size: 15px;
-    text-align: start;
-    color: ${(props) => props.theme['gray-500']};
+    margin-top: 0.25rem;
+    color: ${(props) => props.theme['gray-300']};
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
 
   select {
-    height: 2.5rem;
-    background: ${(props) => props.theme['gray-600']};
+    width: 100%;
+    min-height: 2.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: ${(props) => props.theme['radius-md']};
+    background-color: ${(props) => props.theme['gray-800']};
     color: ${(props) => props.theme['gray-100']};
+    padding: 0 0.9rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+
+    &:focus {
+      border-color: ${(props) => props.theme['brand-yellow']};
+      box-shadow: 0 0 0 3px rgba(255, 196, 0, 0.16);
+    }
+  }
+`
+
+const fieldStyles = `
+  width: 100%;
+  min-height: 2.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.75rem;
+  background: rgba(18, 18, 20, 0.82);
+  padding: 0 0.9rem;
+  font-weight: 700;
+  color: #E1E1E6;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+
+  &:focus {
+    border-color: #FFC400;
+    box-shadow: 0 0 0 3px rgba(255, 196, 0, 0.16);
+  }
+
+  &::placeholder {
+    color: #8D8D99;
   }
 `
 
 export const BaseInput = styled.input`
-  background: transparent;
-  height: 2.5rem;
-  border: 0;
-  border-bottom: 2px solid ${(props) => props.theme['gray-500']};
-  font-weight: bold;
-  font-size: 1.125rem;
-  color: ${(props) => props.theme['gray-100']};
-
-  &:focus {
-    box-shadow: none;
-    border-bottom: 2px solid ${(props) => props.theme['green-500']};
-  }
-
-  &::placeholder {
-    color: ${(props) => props.theme['gray-500']};
-  }
+  ${fieldStyles}
 `
 
 export const ContainerButtons = styled.div`
-    /* width: 100%; */
-`;
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+`
 
 export const BaseButton = styled.button`
   width: 100%;
+  min-height: 2.9rem;
   border: 0;
-  padding: 1rem;
-  margin: 0rem 0rem 1rem 0rem;
-  border-radius: 8px;
-
+  padding: 0.85rem 1rem;
+  border-radius: ${(props) => props.theme['radius-md']};
   display: flex;
   align-items: center;
   justify-content: center;
-
   gap: 0.5rem;
-  font-weight: bold;
+  font-weight: 800;
   cursor: pointer;
+  background: ${(props) => props.theme['brand-yellow']};
+  color: ${(props) => props.theme.black};
+  box-shadow: 0 0.75rem 1.5rem rgba(255, 196, 0, 0.2);
+  transition: filter 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 
-  background: ${(props) => props.theme['green-700']};
-  color: ${(props) => props.theme['gray-100']};
+  &:not(:disabled):hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.56;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
 `
 
 export const BaseInputMask = styled(InputMask)`
-  background: transparent;
-  height: 2.5rem;
-  border: 0;
-  border-bottom: 2px solid ${(props) => props.theme['gray-500']};
-  font-weight: bold;
-  font-size: 1.125rem;
-  color: ${(props) => props.theme['gray-100']};
-
-  &:focus {
-    box-shadow: none;
-    border-bottom: 2px solid ${(props) => props.theme['green-500']};
-  }
-
-  &::placeholder {
-    color: ${(props) => props.theme['gray-500']};
-  }
+  ${fieldStyles}
 `
