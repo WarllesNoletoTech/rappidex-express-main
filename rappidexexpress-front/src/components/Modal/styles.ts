@@ -1,54 +1,45 @@
-import { styled } from 'styled-components'
+import { styled } from "styled-components";
 
 export const BaseInput = styled.input`
+  background: transparent;
+  height: 2.5rem;
   width: 100%;
-  min-height: 2.85rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: ${(props) => props.theme['radius-md']};
-  background: rgba(18, 18, 20, 0.82);
-  padding: 0 0.9rem;
-  margin: 0.75rem 0 1rem;
-  font-weight: 700;
+  border: 0;
+  margin: 1rem 0rem 1rem 0rem;
+  border-bottom: 2px solid ${(props) => props.theme['gray-500']};
+  font-weight: bold;
+  font-size: 1.125rem;
   color: ${(props) => props.theme['gray-100']};
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
   &:focus {
-    border-color: ${(props) => props.theme['brand-yellow']};
-    box-shadow: 0 0 0 3px rgba(255, 196, 0, 0.16);
+    box-shadow: none;
+    border-bottom: 2px solid ${(props) => props.theme['green-500']};
   }
 
   &::placeholder {
-    color: ${(props) => props.theme['gray-400']};
+    color: ${(props) => props.theme['gray-500']};
   }
 `
 
 export const ContainerButtons = styled.div`
-  width: 100%;
-`
+    /* width: 100%; */
+`;
 
 export const BaseButton = styled.button`
   width: 100%;
-  min-height: 2.9rem;
   border: 0;
-  padding: 0.85rem 1rem;
-  border-radius: ${(props) => props.theme['radius-md']};
+  padding: 1rem;
+  margin: 1rem 0rem 1rem 0rem;
+  border-radius: 8px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   gap: 0.5rem;
-  font-weight: 800;
+  font-weight: bold;
   cursor: pointer;
-  background: ${(props) => props.theme['brand-yellow']};
-  color: ${(props) => props.theme.black};
-  transition: filter 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 
-  &:not(:disabled):hover {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: wait;
-  }
+  background: ${(props) => props.theme['green-700']};
+  color: ${(props) => props.theme['gray-100']};
 `
