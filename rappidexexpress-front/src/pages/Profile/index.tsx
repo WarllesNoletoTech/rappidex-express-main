@@ -217,6 +217,7 @@ export function Profile(){
 
     useEffect(() => {
         getMyData()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     useEffect(() => {

@@ -1,4 +1,4 @@
-import { MouseEvent, useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { DeliveryContext } from "../../context/DeliveryContext";
@@ -15,17 +15,13 @@ import {
     ProfileImage,
     ContainerLoading,
     LoadMoreButton,
-    UserInfo,
-    BlockedBadge,
-    BlockedReason,
-    UnblockButton,
 } from "./styles";
 import { Loader } from "../../components/Loader";
 import { User } from "../../shared/interfaces";
 
 export function Users() {
     const USERS_PAGE_SIZE = 100
-    const { token, permission } = useContext(DeliveryContext)
+    const { token } = useContext(DeliveryContext)
     api.defaults.headers.Authorization = `Bearer ${token}`
 
     const navigate = useNavigate()
@@ -76,20 +72,6 @@ export function Users() {
         navigate(`/novo-usuario/${user}`)
     }
 
-    async function handleUnblockUser(event: MouseEvent<HTMLButtonElement>, userId: string) {
-        event.stopPropagation()
-
-        try {
-            await api.patch(`/user/${userId}/unblock`)
-            await getData(1)
-            alert('Usuário desbloqueado com sucesso.')
-        } catch (error: any) {
-            alert(error.response?.data?.message ?? 'Erro ao desbloquear usuário.')
-        }
-    }
-
-    const canUnblockUsers = permission === 'admin' || permission === 'superadmin'
-
     useEffect(() => {
         async function loadFirstPage() {
             try {
@@ -124,20 +106,7 @@ export function Users() {
                                     <ContainerProfileImage>
                                         <ProfileImage src={user.profileImage} />
                                     </ContainerProfileImage>
-                                    <UserInfo>
-                                        <Username>{user.name}</Username>
-                                        {user.blocked && (
-                                            <>
-                                                <BlockedBadge>Bloqueado</BlockedBadge>
-                                                <BlockedReason>Motivo: {user.blockedReason || 'Não informado'}</BlockedReason>
-                                                {canUnblockUsers && (
-                                                    <UnblockButton type="button" onClick={(event) => handleUnblockUser(event, user.id)}>
-                                                        Desbloquear usuário
-                                                    </UnblockButton>
-                                                )}
-                                            </>
-                                        )}
-                                    </UserInfo>
+                                    <Username>{user.name}</Username>
                                 </UserContainer>
                             )}
 

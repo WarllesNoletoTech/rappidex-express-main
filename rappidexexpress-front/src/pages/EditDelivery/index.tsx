@@ -19,16 +19,13 @@ import {
   ShopkeeperInfo,
   ShopkeeperProfileImage,
 } from "./styles";
-import {
-  StatusDelivery,
-  UserType,
-} from "../../shared/constants/enums.constants";
+import { StatusDelivery } from "../../shared/constants/enums.constants";
 
 export function EditDelivery() {
   const location = useLocation();
   const report: Report = location.state;
 
-  const { token, permission } = useContext(DeliveryContext);
+  const { token } = useContext(DeliveryContext);
   api.defaults.headers.Authorization = `Bearer ${token}`;
 
   const [loading, setLoading] = useState(true);
@@ -37,12 +34,6 @@ export function EditDelivery() {
 
   const [selectedStatus, setSelectedStatus] = useState(report.status);
   const [selectedMotoboy, setSelectedMotoboy] = useState(report.motoboyId);
-  const isAdminOrSuperadmin =
-    permission === UserType.ADMIN || permission === UserType.SUPERADMIN;
-  const isAssignedDelivery = Boolean(
-    report.motoboyId || report.motoboyName || report.motoboy,
-  );
-  const canSelectCanceledStatus = isAdminOrSuperadmin || !isAssignedDelivery;
 
   async function handleSave() {
     if (loadingButton) {
@@ -108,9 +99,7 @@ export function EditDelivery() {
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
               >
-                {canSelectCanceledStatus && (
-                  <option value={StatusDelivery.CANCELED}>Cancelado</option>
-                )}
+                <option value={StatusDelivery.CANCELED}>Cancelado</option>
                 <option value={StatusDelivery.COLLECTED}>Coletado</option>
                 <option value={StatusDelivery.ARRIVED_AT_DESTINATION}>
                   Chegou ao destino

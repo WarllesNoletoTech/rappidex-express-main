@@ -14,6 +14,7 @@ import {
   ContainerButtons,
   FormContainer,
   BaseButton,
+  BaseInputMask,
   DeleteButton,
   ResetPassButton,
 } from "./styles";
@@ -58,8 +59,6 @@ export function NewUser() {
   const [ifoodMerchants, setIfoodMerchants] = useState<IfoodMerchantForm[]>([]);
 
   const [loading, setLoading] = useState(false);
-  const [loadingInfo, setLoadingInfo] = useState(false);
-  const [loadingIfood, setLoadingIfood] = useState(false);
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [loadingResetPass, setLoadingResetPass] = useState(false);
   const [selectedType, setSelectedType] = useState("");
@@ -72,7 +71,7 @@ export function NewUser() {
     values: formValues,
   });
 
-  const { handleSubmit, watch, register, reset, setValue, getValues } = profileFormData;
+  const { handleSubmit, watch, register, reset, setValue } = profileFormData;
 
   const allowCitySelection = permission === "superadmin";
 
@@ -98,14 +97,6 @@ export function NewUser() {
 
     if (data.phone.includes("_")) {
       alert("Numero de telefone está faltando algum digito!");
-      setLoading(false);
-      return;
-    }
-
-    const normalizedPhone = formatPhone(data.phone);
-
-    if (!normalizedPhone) {
-      alert("Informe o WhatsApp do lojista.");
       setLoading(false);
       return;
     }
@@ -142,7 +133,7 @@ export function NewUser() {
     try {
       const response = await api.post("/user", {
         ...data,
-        phone: normalizedPhone,
+        phone: formatPhone(data.phone),
         type: selectedType,
         permission:
           selectedType === "admin" || selectedType === "superadmin"
@@ -170,14 +161,14 @@ export function NewUser() {
       setLoading(false);
       alert(error.response.data.message);
     }
-  }
+      }
 
-  async function handleSaveInfo() {
-    if (loadingInfo) {
+  async function handleSave() {
+    if (loading) {
       return;
     }
 
-    setLoadingInfo(true);
+    setLoading(true);
 
     const {
       name,
@@ -186,65 +177,13 @@ export function NewUser() {
       pix,
       profileImage,
       location,
-    } = getValues();
-    const cityIdToSubmit = allowCitySelection
-      ? selectedCityId
-      : loggedUserCityId;
-
-    if (!cityIdToSubmit) {
-      alert("Não foi possível identificar a cidade para vincular ao usuário.");
-      setLoadingInfo(false);
-      return;
-    }
-
-    const normalizedPhone = formatPhone(phone);
-
-    if (!normalizedPhone) {
-      alert("Informe o WhatsApp do lojista.");
-      setLoadingInfo(false);
-      return;
-    }
-
-    try {
-      const response = await api.put(`/user/${userId}`, {
-        name,
-        phone: normalizedPhone,
-        user,
-        pix,
-        profileImage,
-        location,
-        type: selectedType,
-        cityId: cityIdToSubmit,
-      });
-
-      const nextValues = {
-        ...getValues(),
-        ...response.data,
-        phone: formatPhoneForMask(response.data?.phone || normalizedPhone),
-      };
-      setFormValues(nextValues);
-      reset(nextValues);
-      setSelectedType(response.data?.type || selectedType);
-      setLoadingInfo(false);
-      alert("Informações do usuário salvas com sucesso!");
-    } catch (error: any) {
-      setLoadingInfo(false);
-      alert(error.response?.data?.message ?? "Não foi possível salvar as informações do usuário.");
-    }
-  }
-
-  async function handleSaveIfood() {
-    if (loadingIfood) {
-      return;
-    }
-
-    setLoadingIfood(true);
-
-    const {
       useIfoodIntegration,
       ifoodMerchantId,
       usesExternalIfoodPdv,
-    } = getValues();
+    } = watch();
+    const cityIdToSubmit = allowCitySelection
+      ? selectedCityId
+      : loggedUserCityId;
     const normalizedMerchants = ifoodMerchants
       .map((merchant) => ({
         ...merchant,
@@ -256,39 +195,41 @@ export function NewUser() {
 
     if (useIfoodIntegration && !(ifoodMerchantId || "").trim() && normalizedMerchants.length === 0) {
       alert("Para integração iFood, preencha o merchantId.");
-      setLoadingIfood(false);
+      setLoading(false);
       return;
     }
 
-    const resolvedIfoodMerchantId = resolveLegacyMerchantId(ifoodMerchantId || "", normalizedMerchants);
-
+    if (!cityIdToSubmit) {
+      alert("Não foi possível identificar a cidade para vincular ao usuário.");
+      setLoading(false);
+      return;
+    }
     try {
-      const response = await api.put(`/user/${userId}`, {
+      await api.put(`/user/${userId}`, {
+        name,
+        phone: formatPhone(phone),
+        user,
+        pix,
+        profileImage,
+        location,
+        type: selectedType,
+        cityId: cityIdToSubmit,
         useIfoodIntegration: Boolean(useIfoodIntegration),
         usesExternalIfoodPdv: Boolean(useIfoodIntegration) && Boolean(usesExternalIfoodPdv),
-        ifoodMerchantId: resolvedIfoodMerchantId,
+        ifoodMerchantId: resolveLegacyMerchantId(ifoodMerchantId || "", normalizedMerchants),
         ifoodMerchants: normalizedMerchants,
       });
-      if (useIfoodIntegration && resolvedIfoodMerchantId) {
+      if (useIfoodIntegration && resolveLegacyMerchantId(ifoodMerchantId || "", normalizedMerchants)) {
         await api.post(`/ifood/sync-company/${userId}`).catch(() => undefined);
         alert(
           "Integração iFood salva. Os pedidos podem levar até 1 minuto para aparecer após ficarem prontos. Sincronização inicial iniciada.",
         );
-      } else {
-        alert("Configurações iFood salvas com sucesso!");
       }
-      const nextValues = {
-        ...getValues(),
-        ...response.data,
-        phone: formatPhoneForMask(response.data?.phone || getValues("phone") || ""),
-      };
-      setFormValues(nextValues);
-      reset(nextValues);
-      setIfoodMerchants(Array.isArray(response.data?.ifoodMerchants) ? response.data.ifoodMerchants : normalizedMerchants);
-      setLoadingIfood(false);
+      setLoading(false);
+      alert("Usuário editado com sucesso!");
     } catch (error: any) {
-      setLoadingIfood(false);
-      alert(error.response?.data?.message ?? "Não foi possível salvar as configurações do iFood.");
+      setLoading(false);
+      alert(error.response.data.message);
     }
   }
   
@@ -328,23 +269,11 @@ export function NewUser() {
   }
 
   function formatPhone(phone: string) {
-    const digits = String(phone ?? "").replace(/\D/g, "");
-
-    if (digits.length === 11 && !digits.startsWith("55")) {
-      return `55${digits}`;
-    }
-
-    return digits;
-  }
-
-  function formatPhoneForMask(phone: string) {
-    const digits = formatPhone(phone);
-
-    if (digits.length === 13 && digits.startsWith("55")) {
-      return digits.slice(2);
-    }
-
-    return digits;
+    return phone
+      .replace("(", "")
+      .replace(")", "")
+      .replace(" ", "")
+      .replace("-", "");
   }
 
   async function fetchCities() {
@@ -398,13 +327,7 @@ export function NewUser() {
     let userFinded;
     try {
       userFinded = await api.get(`/user/${user}`);
-      const nextValues = {
-        ...userFinded.data,
-        password: "",
-        phone: formatPhoneForMask(userFinded.data?.phone || ""),
-      };
-      setFormValues(nextValues);
-      reset(nextValues);
+      setFormValues(userFinded.data);
       setIfoodMerchants(Array.isArray(userFinded.data?.ifoodMerchants) ? userFinded.data.ifoodMerchants : []);
       setUserId(userFinded.data.id);
       setSelectedType(userFinded.data.type);
@@ -435,24 +358,14 @@ export function NewUser() {
   const citySelectionMissing = allowCitySelection
     ? !selectedCityId
     : !loggedUserCityId;
-  const hasIfoodMerchant =
-    Boolean(watch("ifoodMerchantId")) ||
-    ifoodMerchants.some((merchant) => String(merchant.merchantId || "").trim());
   const ifoodIntegrationMissingFields =
-    Boolean(useIfoodIntegration) && !hasIfoodMerchant;
-  const isInfoSubmitDisabled =
-    loadingInfo ||
-    !name ||
-    !phone ||
-    !pix ||
-    !profileImage ||
-    citySelectionMissing;
+    Boolean(useIfoodIntegration) && !watch("ifoodMerchantId");
   const isSubmitDisabled =
-    loading ||
     !name ||
     !phone ||
     !pix ||
     !profileImage ||
+    phone.includes("_") ||
     citySelectionMissing ||
     ifoodIntegrationMissingFields;
   const isShopkeeperType =
@@ -486,11 +399,11 @@ export function NewUser() {
           />
 
           <label htmlFor="phone">Whatsapp:</label>
-          <BaseInput
+          <BaseInputMask
             type="text"
-            inputMode="numeric"
+            mask="(99) 99999-9999"
             id="phone"
-            placeholder="Ex: 5594991220268 ou 94991220268"
+            placeholder="Informe o whatsapp."
             {...register("phone")}
           />
 
@@ -631,7 +544,7 @@ export function NewUser() {
                           value={merchant.merchantId || ""}
                           onChange={(event) => setIfoodMerchants((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, merchantId: event.target.value } : item))}
                         />
-                        <label>Link da localização da loja (opcional):</label>
+                        <label>Endereço de coleta (opcional):</label>
                         <BaseInput
                           type="text"
                           value={merchant.pickupAddress || ""}
@@ -673,26 +586,18 @@ export function NewUser() {
         </FormContainer>
       </form>
       {user && (
-        <ContainerButtons>
-          <BaseButton type="button" disabled={isInfoSubmitDisabled} onClick={handleSaveInfo}>
-            {loadingInfo ? (
-              <Loader size={20} biggestColor="gray" smallestColor="gray" />
-            ) : (
-              "Salvar informações"
-            )}
-          </BaseButton>
-
-          {isShopkeeperType && (
-            <BaseButton type="button" disabled={loadingIfood || ifoodIntegrationMissingFields} onClick={handleSaveIfood}>
-              {loadingIfood ? (
+        <>
+          {user && (
+            <BaseButton disabled={isSubmitDisabled} onClick={handleSave}>
+              {loading ? (
                 <Loader size={20} biggestColor="gray" smallestColor="gray" />
               ) : (
-                "Salvar iFood"
+                "Salvar"
               )}
             </BaseButton>
           )}
 
-          <ResetPassButton type="button" onClick={handleReset}>
+          <ResetPassButton onClick={handleReset}>
             {loadingResetPass ? (
               <Loader size={20} biggestColor="black" smallestColor="black" />
             ) : (
@@ -700,14 +605,14 @@ export function NewUser() {
             )}
           </ResetPassButton>
 
-          <DeleteButton type="button" onClick={handleDelete}>
+          <DeleteButton onClick={handleDelete}>
             {loadingDelete ? (
               <Loader size={20} biggestColor="gray" smallestColor="gray" />
             ) : (
               "Apagar usuário"
             )}
           </DeleteButton>
-        </ContainerButtons>
+        </>
       )}
     </Container>
   );
