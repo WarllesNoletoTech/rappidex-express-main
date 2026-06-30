@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useContext, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import * as zod from 'zod'
 import { useForm } from 'react-hook-form'
 import { SignIn } from 'phosphor-react'
@@ -25,7 +25,6 @@ type NewLoginFormData = zod.infer<typeof newLoginFormValidationSchema>
 export function Login() {
     const { login } = useContext(DeliveryContext)
     const navigate = useNavigate()
-    const [searchParams] = useSearchParams()
 
     const newLoginFormData = useForm<NewLoginFormData>({
         resolver: zodResolver(newLoginFormValidationSchema),
@@ -87,16 +86,12 @@ export function Login() {
     const user = watch('user')
     const password = watch('password')
     const isSubmitDisabled = !user || !password
-    const blockedMessage = searchParams.get('blocked') === 'autoclick'
-        ? 'Seu acesso foi bloqueado por uso suspeito de autoclick. Procure o administrador.'
-        : null
 
     return (
         <Container>
             <form onSubmit={handleSubmit(handleLogin)} action="">
                 <FormContainer>
                     <Logo src="https://i.pinimg.com/736x/a5/9f/17/a59f176343c6fd0d83adea72eaf0c57f.jpg" />
-                    {blockedMessage && <p>{blockedMessage}</p>}
                     <BaseInput
                         type="text"
                         id="user"

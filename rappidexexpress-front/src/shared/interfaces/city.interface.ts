@@ -1,4 +1,5 @@
 export interface City {
+<<<<<<< HEAD
   id?: string;
   name: string;
   createdAt?: string;
@@ -9,3 +10,11 @@ export interface City {
   monthlyFeeValue?: number;
   pixKey?: string;
 }
+=======
+  id?: string
+  name: string
+  createdAt?: string
+  state?: string
+  clientWhatsappMessage?: string
+}
+>>>>>>> parent of 613ac8c (atualização front)
