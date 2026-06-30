@@ -3,20 +3,13 @@ import styled from 'styled-components'
 export const Container = styled.main`
   flex: 1;
   width: 100%;
-  display: grid;
-  align-items: center;
+  display: flex;
+  align-items: flex-start;
   justify-content: center;
-
-  margin-top: 2rem;
-  
-  background: ${(props) => props.theme['gray-600']};
+  padding: clamp(1rem, 3vw, 2rem) 1rem 2rem;
 
   form {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin-top: 2rem;
+    width: min(100%, 30rem);
   }
 `
 
@@ -25,59 +18,69 @@ export const FormContainer = styled.div`
   display: flex;
   flex-direction: column;
   color: ${(props) => props.theme['gray-100']};
-  font-size: 1.125rem;
-  font-weight: bold;
-  
-  gap: 2rem;
-  margin-top: 3rem;
+  gap: 0.85rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  background: linear-gradient(145deg, ${(props) => props.theme['gray-700']}, ${(props) => props.theme['gray-800']});
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: ${(props) => props.theme['radius-xl']};
+  box-shadow: ${(props) => props.theme['shadow-card']};
 
   label {
-    font-size: 15px;
-    text-align: start;
-    color: ${(props) => props.theme['gray-500']};
+    color: ${(props) => props.theme['gray-300']};
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
 `
 
 export const BaseInput = styled.input`
-  flex: 1;
-  width: 17rem;
-  background: transparent;
-  height: 2.5rem;
-  border: 0;
-  border-bottom: 2px solid ${(props) => props.theme['gray-500']};
-  font-weight: bold;
-  font-size: 1.125rem;
+  width: 100%;
+  min-height: 2.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: ${(props) => props.theme['radius-md']};
+  background: rgba(18, 18, 20, 0.82);
+  padding: 0 0.9rem;
+  font-weight: 700;
   color: ${(props) => props.theme['gray-100']};
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
   &:focus {
-    box-shadow: none;
-    border-bottom: 2px solid ${(props) => props.theme['green-500']};
+    border-color: ${(props) => props.theme['brand-yellow']};
+    box-shadow: 0 0 0 3px rgba(255, 196, 0, 0.16);
   }
 
   &::placeholder {
-    color: ${(props) => props.theme['gray-500']};
+    color: ${(props) => props.theme['gray-400']};
   }
 `
 
 export const ContainerButtons = styled.div`
-    width: 100%;
-`;
+  width: 100%;
+  margin-top: 0.75rem;
+`
 
 export const BaseButton = styled.button`
   width: 100%;
+  min-height: 2.9rem;
   border: 0;
-  padding: 1rem;
-  margin: 0rem 0rem 1rem 0rem;
-  border-radius: 8px;
-
+  padding: 0.85rem 1rem;
+  border-radius: ${(props) => props.theme['radius-md']};
   display: flex;
   align-items: center;
   justify-content: center;
-
   gap: 0.5rem;
-  font-weight: bold;
-  cursor: pointer;
+  font-weight: 800;
+  background: ${(props) => props.theme['brand-yellow']};
+  color: ${(props) => props.theme.black};
+  transition: filter 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 
-  background: ${(props) => props.theme['green-700']};
-  color: ${(props) => props.theme['gray-100']};
+  &:not(:disabled):hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.56;
+  }
 `

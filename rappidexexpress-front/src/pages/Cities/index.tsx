@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { FormEvent, useContext, useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { FormEvent, useContext, useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
 
-import { DeliveryContext } from '../../context/DeliveryContext'
-import api from '../../services/api'
-import { Loader } from '../../components/Loader'
-import { City } from '../../shared/interfaces'
+import { DeliveryContext } from "../../context/DeliveryContext";
+import api from "../../services/api";
+import { Loader } from "../../components/Loader";
+import { City } from "../../shared/interfaces";
 import {
   Container,
   Content,
@@ -29,57 +29,63 @@ import {
   CityActionButton,
   EmptyState,
   LoaderContainer,
-} from './styles'
+} from "./styles";
 
 const BRAZILIAN_STATES = [
-  { value: 'AC', label: 'Acre (AC)' },
-  { value: 'AL', label: 'Alagoas (AL)' },
-  { value: 'AP', label: 'Amapá (AP)' },
-  { value: 'AM', label: 'Amazonas (AM)' },
-  { value: 'BA', label: 'Bahia (BA)' },
-  { value: 'CE', label: 'Ceará (CE)' },
-  { value: 'DF', label: 'Distrito Federal (DF)' },
-  { value: 'ES', label: 'Espírito Santo (ES)' },
-  { value: 'GO', label: 'Goiás (GO)' },
-  { value: 'MA', label: 'Maranhão (MA)' },
-  { value: 'MT', label: 'Mato Grosso (MT)' },
-  { value: 'MS', label: 'Mato Grosso do Sul (MS)' },
-  { value: 'MG', label: 'Minas Gerais (MG)' },
-  { value: 'PA', label: 'Pará (PA)' },
-  { value: 'PB', label: 'Paraíba (PB)' },
-  { value: 'PR', label: 'Paraná (PR)' },
-  { value: 'PE', label: 'Pernambuco (PE)' },
-  { value: 'PI', label: 'Piauí (PI)' },
-  { value: 'RJ', label: 'Rio de Janeiro (RJ)' },
-  { value: 'RN', label: 'Rio Grande do Norte (RN)' },
-  { value: 'RS', label: 'Rio Grande do Sul (RS)' },
-  { value: 'RO', label: 'Rondônia (RO)' },
-  { value: 'RR', label: 'Roraima (RR)' },
-  { value: 'SC', label: 'Santa Catarina (SC)' },
-  { value: 'SP', label: 'São Paulo (SP)' },
-  { value: 'SE', label: 'Sergipe (SE)' },
-  { value: 'TO', label: 'Tocantins (TO)' },
-] as const
+  { value: "AC", label: "Acre (AC)" },
+  { value: "AL", label: "Alagoas (AL)" },
+  { value: "AP", label: "Amapá (AP)" },
+  { value: "AM", label: "Amazonas (AM)" },
+  { value: "BA", label: "Bahia (BA)" },
+  { value: "CE", label: "Ceará (CE)" },
+  { value: "DF", label: "Distrito Federal (DF)" },
+  { value: "ES", label: "Espírito Santo (ES)" },
+  { value: "GO", label: "Goiás (GO)" },
+  { value: "MA", label: "Maranhão (MA)" },
+  { value: "MT", label: "Mato Grosso (MT)" },
+  { value: "MS", label: "Mato Grosso do Sul (MS)" },
+  { value: "MG", label: "Minas Gerais (MG)" },
+  { value: "PA", label: "Pará (PA)" },
+  { value: "PB", label: "Paraíba (PB)" },
+  { value: "PR", label: "Paraná (PR)" },
+  { value: "PE", label: "Pernambuco (PE)" },
+  { value: "PI", label: "Piauí (PI)" },
+  { value: "RJ", label: "Rio de Janeiro (RJ)" },
+  { value: "RN", label: "Rio Grande do Norte (RN)" },
+  { value: "RS", label: "Rio Grande do Sul (RS)" },
+  { value: "RO", label: "Rondônia (RO)" },
+  { value: "RR", label: "Roraima (RR)" },
+  { value: "SC", label: "Santa Catarina (SC)" },
+  { value: "SP", label: "São Paulo (SP)" },
+  { value: "SE", label: "Sergipe (SE)" },
+  { value: "TO", label: "Tocantins (TO)" },
+] as const;
 
 function getStateLabel(value?: string) {
   if (!value) {
-    return 'Estado não informado'
+    return "Estado não informado";
   }
-  const state = BRAZILIAN_STATES.find((item) => item.value === value)
-  return state ? state.label : value
+  const state = BRAZILIAN_STATES.find((item) => item.value === value);
+  return state ? state.label : value;
 }
 
 export function Cities() {
-    const { token, permission } = useContext(DeliveryContext)
-  api.defaults.headers.Authorization = `Bearer ${token}`
+  const { token, permission } = useContext(DeliveryContext);
+  api.defaults.headers.Authorization = `Bearer ${token}`;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 5803b8a (revert)
   const [cities, setCities] = useState<City[]>([]);
   const [cityName, setCityName] = useState("");
   const [selectedState, setSelectedState] = useState("");
   const [cityWhatsappMessage, setCityWhatsappMessage] = useState("");
   const [deliveryFeeValue, setDeliveryFeeValue] = useState("");
+<<<<<<< HEAD
   const [monthlyFeeValue, setMonthlyFeeValue] = useState("");
+=======
+>>>>>>> parent of 5803b8a (revert)
   const [deliveryValue, setDeliveryValue] = useState("");
   const [pixKey, setPixKey] = useState("");
   const [editingCityId, setEditingCityId] = useState<string | null>(null);
@@ -89,6 +95,7 @@ export function Cities() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userLoading, setUserLoading] = useState(true);
   const [updatingCityId, setUpdatingCityId] = useState<string | null>(null);
+<<<<<<< HEAD
 =======
   const [cities, setCities] = useState<City[]>([])
   const [cityName, setCityName] = useState('')
@@ -102,61 +109,70 @@ export function Cities() {
   const [userLoading, setUserLoading] = useState(true)
   const [updatingCityId, setUpdatingCityId] = useState<string | null>(null)
 >>>>>>> parent of 613ac8c (atualização front)
+=======
+>>>>>>> parent of 5803b8a (revert)
 
   async function fetchCities() {
-    setLoading(true)
+    setLoading(true);
     try {
-      const response = await api.get('/city')
+      const response = await api.get("/city");
       const rawData = Array.isArray(response.data?.data)
         ? response.data.data
         : Array.isArray(response.data)
-        ? response.data
-        : []
-      setCities(rawData as City[])
+          ? response.data
+          : [];
+      setCities(rawData as City[]);
     } catch (error: any) {
-      alert(error.response?.data?.message ?? 'Não foi possível carregar as cidades.')
+      alert(
+        error.response?.data?.message ??
+          "Não foi possível carregar as cidades.",
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   async function fetchCurrentUser() {
-    setUserLoading(true)
+    setUserLoading(true);
     try {
-      const response = await api.get('/user/myself')
-      setCurrentUser(response.data)
+      const response = await api.get("/user/myself");
+      setCurrentUser(response.data);
       const userCityId =
         response.data?.cityId ??
         response.data?.city?.id ??
         response.data?.city?.cityId ??
-        null
-      setSelectedCityId(userCityId ? String(userCityId) : null)
+        null;
+      setSelectedCityId(userCityId ? String(userCityId) : null);
     } catch (error: any) {
       alert(
         error.response?.data?.message ??
-          'Não foi possível carregar os dados do usuário para vincular a cidade.',
-      )
+          "Não foi possível carregar os dados do usuário para vincular a cidade.",
+      );
     } finally {
-      setUserLoading(false)
+      setUserLoading(false);
     }
   }
 
   useEffect(() => {
-    if (permission === 'superadmin') {
-      fetchCities()
-      fetchCurrentUser()
+    if (permission === "superadmin") {
+      fetchCities();
+      fetchCurrentUser();
     } else {
-      setLoading(false)
-      setUserLoading(false)
+      setLoading(false);
+      setUserLoading(false);
     }
-  }, [permission])
+  }, [permission]);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 5803b8a (revert)
   function resetForm() {
     setCityName("");
     setSelectedState("");
     setCityWhatsappMessage("");
     setDeliveryFeeValue("");
+<<<<<<< HEAD
     setMonthlyFeeValue("");
     setDeliveryValue("");
     setPixKey("");
@@ -211,24 +227,53 @@ export function Cities() {
     setEditingCityId(city.id ? String(city.id) : null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
 >>>>>>> parent of 613ac8c (atualização front)
+=======
+    setDeliveryValue("");
+    setPixKey("");
+    setEditingCityId(null);
+  }
+
+  function handleEditCity(city: City) {
+    setCityName(city.name ?? "");
+    setSelectedState(city.state ?? "");
+    setCityWhatsappMessage(city.clientWhatsappMessage ?? "");
+    setDeliveryFeeValue(
+      city.deliveryFeeValue !== undefined
+        ? String(city.deliveryFeeValue).replace(".", ",")
+        : "",
+    );
+    setDeliveryValue(city.deliveryValue ?? "");
+    setPixKey(city.pixKey ?? "");
+    setEditingCityId(city.id ? String(city.id) : null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function parseDeliveryFeeValue(value: string) {
+    const normalized = value.trim().replace(/\./g, "").replace(",", ".");
+    if (!normalized) return undefined;
+
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : undefined;
+>>>>>>> parent of 5803b8a (revert)
   }
 
   async function handleCreateCity(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+    event.preventDefault();
     if (isSubmitting) {
-      return
+      return;
     }
 
-    const trimmedName = cityName.trim()
+    const trimmedName = cityName.trim();
     if (!trimmedName) {
-      alert('Informe o nome da cidade.')
-      return
+      alert("Informe o nome da cidade.");
+      return;
     }
 
     const payload = {
       name: trimmedName,
       state: selectedState,
       clientWhatsappMessage: cityWhatsappMessage.trim(),
+<<<<<<< HEAD
 <<<<<<< HEAD
       deliveryFeeValue: parseDeliveryFeeValue(deliveryFeeValue),
       monthlyFeeValue: parseDeliveryFeeValue(monthlyFeeValue),
@@ -238,76 +283,87 @@ export function Cities() {
 =======
     }
 >>>>>>> parent of 613ac8c (atualização front)
+=======
+      deliveryFeeValue: parseDeliveryFeeValue(deliveryFeeValue),
+      deliveryValue: deliveryValue.trim(),
+      pixKey: pixKey.trim(),
+    };
+>>>>>>> parent of 5803b8a (revert)
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
       if (editingCityId) {
-        await api.put(`/city/${editingCityId}`, payload)
-        alert('Cidade atualizada com sucesso!')
+        await api.put(`/city/${editingCityId}`, payload);
+        alert("Cidade atualizada com sucesso!");
       } else {
-        await api.post('/city', payload)
-        alert('Cidade cadastrada com sucesso!')
+        await api.post("/city", payload);
+        alert("Cidade cadastrada com sucesso!");
       }
 
-      resetForm()
-      await fetchCities()
+      resetForm();
+      await fetchCities();
     } catch (error: any) {
       alert(
-        error.response?.data?.message ??
-          'Não foi possível salvar a cidade.',
-      )
+        error.response?.data?.message ?? "Não foi possível salvar a cidade.",
+      );
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
   async function handleSelectCity(city: City) {
-    const cityId = city.id ? String(city.id) : null
+    const cityId = city.id ? String(city.id) : null;
 
     if (!cityId) {
-      alert('Cidade selecionada não possui identificador válido para vincular ao usuário.')
-      return
+      alert(
+        "Cidade selecionada não possui identificador válido para vincular ao usuário.",
+      );
+      return;
     }
 
     if (updatingCityId === cityId) {
-      return
+      return;
     }
 
     if (!currentUser?.id) {
-      alert('Não foi possível identificar o usuário logado para atualizar a cidade.')
-      return
+      alert(
+        "Não foi possível identificar o usuário logado para atualizar a cidade.",
+      );
+      return;
     }
 
-    setUpdatingCityId(cityId)
+    setUpdatingCityId(cityId);
 
     try {
-      const phoneOnlyDigits = (currentUser.phone ?? '').toString().replace(/\D/g, '')
+      const phoneOnlyDigits = (currentUser.phone ?? "")
+        .toString()
+        .replace(/\D/g, "");
       const payload = {
-        name: currentUser.name ?? '',
+        name: currentUser.name ?? "",
         phone: phoneOnlyDigits,
-        user: currentUser.user ?? '',
-        pix: currentUser.pix ?? '',
-        profileImage: currentUser.profileImage ?? '',
-        location: currentUser.location ?? '',
-        type: currentUser.type ?? '',
+        user: currentUser.user ?? "",
+        pix: currentUser.pix ?? "",
+        profileImage: currentUser.profileImage ?? "",
+        location: currentUser.location ?? "",
+        type: currentUser.type ?? "",
         cityId,
-      }
+      };
 
-      await api.put(`/user/${currentUser.id}`, payload)
-      setSelectedCityId(cityId)
-      setCurrentUser((prev: any) => (prev ? { ...prev, cityId } : prev))
+      await api.put(`/user/${currentUser.id}`, payload);
+      setSelectedCityId(cityId);
+      setCurrentUser((prev: any) => (prev ? { ...prev, cityId } : prev));
     } catch (error: any) {
       alert(
         error.response?.data?.message ??
-          'Não foi possível atualizar a cidade vinculada ao usuário.',
-      )
+          "Não foi possível atualizar a cidade vinculada ao usuário.",
+      );
     } finally {
-      setUpdatingCityId(null)
+      setUpdatingCityId(null);
     }
   }
 
-  if (permission !== 'superadmin') {
-    return <Navigate to="/" replace />
+  if (permission !== "superadmin") {
+    return <Navigate to="/" replace />;
   }
 
   return (
@@ -315,10 +371,12 @@ export function Cities() {
       <Content>
         <Header>
           <Title>Cidades</Title>
-          <Description>Gerencie as cidades atendidas pela plataforma.</Description>
+          <Description>
+            Gerencie as cidades atendidas pela plataforma.
+          </Description>
         </Header>
 
-                <CityForm onSubmit={handleCreateCity}>
+        <CityForm onSubmit={handleCreateCity}>
           <CityInput
             placeholder="Nome da cidade"
             value={cityName}
@@ -340,6 +398,9 @@ export function Cities() {
           </CitySelect>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 5803b8a (revert)
           <CityInput
             placeholder="Valor cobrado do estabelecimento por entrega. Ex: 10,00"
             value={deliveryFeeValue}
@@ -348,6 +409,7 @@ export function Cities() {
           />
 
           <CityInput
+<<<<<<< HEAD
             placeholder="Valor da Mensalidade. Ex: 99,90"
             inputMode="decimal"
             value={monthlyFeeValue}
@@ -358,6 +420,8 @@ export function Cities() {
           />
 
           <CityInput
+=======
+>>>>>>> parent of 5803b8a (revert)
             placeholder="Valor pago ao entregador por entrega. Ex: 7,00"
             value={deliveryValue}
             onChange={(event) => setDeliveryValue(event.target.value)}
@@ -371,14 +435,18 @@ export function Cities() {
             disabled={isSubmitting}
           />
 
+<<<<<<< HEAD
 =======
 >>>>>>> parent of 613ac8c (atualização front)
+=======
+>>>>>>> parent of 5803b8a (revert)
           <CityTextarea
             placeholder="Mensagem personalizada que o motoboy vai mandar ao cliente dessa cidade"
             value={cityWhatsappMessage}
             onChange={(event) => setCityWhatsappMessage(event.target.value)}
             disabled={isSubmitting}
           />
+
 
           <FormActions>
             <SubmitButton
@@ -388,14 +456,18 @@ export function Cities() {
               {isSubmitting ? (
                 <Loader size={24} biggestColor="gray" smallestColor="gray" />
               ) : editingCityId ? (
-                'Salvar alterações'
+                "Salvar alterações"
               ) : (
-                'Cadastrar cidade'
+                "Cadastrar cidade"
               )}
             </SubmitButton>
 
             {editingCityId && (
-              <CancelButton type="button" onClick={resetForm} disabled={isSubmitting}>
+              <CancelButton
+                type="button"
+                onClick={resetForm}
+                disabled={isSubmitting}
+              >
                 Cancelar edição
               </CancelButton>
             )}
@@ -409,20 +481,21 @@ export function Cities() {
         ) : cities.length > 0 ? (
           <CitiesList>
             {cities.map((city) => {
-              const cityId = city.id ? String(city.id) : ''
-              const isSelected = Boolean(cityId) && selectedCityId === cityId
-              const isUpdating = updatingCityId === cityId
-              const isDisabled = userLoading || !cityId || Boolean(updatingCityId)
+              const cityId = city.id ? String(city.id) : "";
+              const isSelected = Boolean(cityId) && selectedCityId === cityId;
+              const isUpdating = updatingCityId === cityId;
+              const isDisabled =
+                userLoading || !cityId || Boolean(updatingCityId);
 
-                            return (
-                <CityCard
-                  key={city.id ?? city.name}
-                  $isSelected={isSelected}
-                >
+              return (
+                <CityCard key={city.id ?? city.name} $isSelected={isSelected}>
                   <CityInfo>
                     <CityName>{city.name}</CityName>
                     <CityState>{getStateLabel(city.state)}</CityState>
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 5803b8a (revert)
                     <CityState>
                       Valor cobrado do estabelecimento por entrega:{" "}
                       {city.deliveryFeeValue !== undefined
@@ -433,6 +506,7 @@ export function Cities() {
                         : "não configurado"}
                     </CityState>
                     <CityState>
+<<<<<<< HEAD
                       Valor da mensalidade:{" "}
                       {city.monthlyFeeValue !== undefined
                         ? city.monthlyFeeValue.toLocaleString("pt-BR", {
@@ -442,6 +516,8 @@ export function Cities() {
                         : "não configurado"}
                     </CityState>
                     <CityState>
+=======
+>>>>>>> parent of 5803b8a (revert)
                       Valor pago ao entregador por entrega:{" "}
                       {city.deliveryValue?.trim()
                         ? `R$ ${city.deliveryValue}`
@@ -450,12 +526,15 @@ export function Cities() {
                     <CityState>
                       Chave PIX: {city.pixKey?.trim() || "não configurada"}
                     </CityState>
+<<<<<<< HEAD
 =======
 >>>>>>> parent of 613ac8c (atualização front)
+=======
+>>>>>>> parent of 5803b8a (revert)
                     <CityMessage>
                       {city.clientWhatsappMessage?.trim()
                         ? city.clientWhatsappMessage
-                        : 'Sem mensagem personalizada. Será usada a mensagem padrão do sistema.'}
+                        : "Sem mensagem personalizada. Será usada a mensagem padrão do sistema."}
                     </CityMessage>
                   </CityInfo>
 
@@ -466,11 +545,15 @@ export function Cities() {
                       disabled={isDisabled}
                     >
                       {isUpdating ? (
-                        <Loader size={20} biggestColor="gray" smallestColor="gray" />
+                        <Loader
+                          size={20}
+                          biggestColor="gray"
+                          smallestColor="gray"
+                        />
                       ) : isSelected ? (
-                        'Selecionada'
+                        "Selecionada"
                       ) : (
-                        'Selecionar'
+                        "Selecionar"
                       )}
                     </CityActionButton>
 
@@ -480,11 +563,11 @@ export function Cities() {
                       onClick={() => handleEditCity(city)}
                       disabled={isSubmitting || Boolean(updatingCityId)}
                     >
-                      Editar mensagem
+                      Editar cidade
                     </CityActionButton>
                   </CityCardActions>
                 </CityCard>
-              )
+              );
             })}
           </CitiesList>
         ) : (
@@ -492,5 +575,5 @@ export function Cities() {
         )}
       </Content>
     </Container>
-  )
+  );
 }

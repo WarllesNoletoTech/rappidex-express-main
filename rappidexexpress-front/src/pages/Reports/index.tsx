@@ -1,8 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useContext, useEffect, useState } from "react";
-import { DownloadSimple, PencilSimple  } from "phosphor-react";
+import {
+  DownloadSimple,
+  FilePdf,
+  PencilSimple,
+  WhatsappLogo,
+} from "phosphor-react";
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 5803b8a (revert)
 import {
   Container,
   ContainerInfo,
@@ -24,6 +32,7 @@ import {
   ActionButton,
   SettlementSummary,
   SettlementFeedback,
+<<<<<<< HEAD
   CheckboxLabel,
 =======
 import { 
@@ -43,6 +52,8 @@ import {
     EditContainer,
     OnClickLink,
 >>>>>>> parent of 613ac8c (atualização front)
+=======
+>>>>>>> parent of 5803b8a (revert)
 } from "./styles";
 import api from "../../services/api";
 import { DeliveryContext } from "../../context/DeliveryContext";
@@ -50,98 +61,120 @@ import { User, Report } from "../../shared/interfaces";
 import { Loader } from "../../components/Loader";
 
 export function Reports() {
-    const { token, permission } = useContext(DeliveryContext)
-    api.defaults.headers.Authorization = `Bearer ${token}`
-    
-    const [loadingInitial, setLoadingInitial] = useState(true);
-    const [loading, setLoading] = useState(false);
+  const { token, permission } = useContext(DeliveryContext);
+  api.defaults.headers.Authorization = `Bearer ${token}`;
 
-    const [motoboys, setMotoboys] = useState([]);
-    const [shopkeepers, setShopkeepers] = useState([]);
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-    const [reports, setReports] = useState<Report[]>([]);
-    const [reportsCount, setReportsCount] = useState(0);
+  const [motoboys, setMotoboys] = useState([]);
+  const [shopkeepers, setShopkeepers] = useState<User[]>([]);
 
-    const [loadingMoreReports, setLoadingMoreReports] = useState(false)
-    const [page, setPage] = useState(2);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [reportsCount, setReportsCount] = useState(0);
 
-    const [selectedStatus, setSelectedStatus] = useState('FINALIZADO');
-    const [selectedMotoboy, setSelectedMotoboy] = useState('');
-    const [selectedEstablishment, setSelectedEstablishment] = useState('');
-    const [createdIn, setCreatedIn] = useState('');
-    const [createdUntil, setCreatedUntil] = useState('');
+  const [loadingMoreReports, setLoadingMoreReports] = useState(false);
+  const [settlementLoading, setSettlementLoading] = useState(false);
+  const [settlementFeedback, setSettlementFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+  const [page, setPage] = useState(2);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 5803b8a (revert)
   const [selectedStatus, setSelectedStatus] = useState("FINALIZADO");
   const [selectedMotoboy, setSelectedMotoboy] = useState("");
   const [selectedEstablishment, setSelectedEstablishment] = useState("");
   const [createdIn, setCreatedIn] = useState("");
   const [createdUntil, setCreatedUntil] = useState("");
+<<<<<<< HEAD
   const [includeMonthlyFee, setIncludeMonthlyFee] = useState(false);
 =======
     function formatNumber(number: string){
         const cleaned = ('' + number).replace(/\D/g, '');
         const match = cleaned.match(/^(\d{2})(\d{2})(\d{4}|\d{5})(\d{4})$/);
 >>>>>>> parent of 613ac8c (atualização front)
+=======
+>>>>>>> parent of 5803b8a (revert)
 
-        if (match) {
-            return ['(', match[2], ')', match[3], '-', match[4]].join('')
-        }
-        return '';
+  const isAdminUser = permission === "admin" || permission === "superadmin";
+
+  function formatNumber(number: string) {
+    const cleaned = ("" + number).replace(/\D/g, "");
+    const match = cleaned.match(/^(\d{2})(\d{2})(\d{4}|\d{5})(\d{4})$/);
+
+    if (match) {
+      return ["(", match[2], ")", match[3], "-", match[4]].join("");
+    }
+    return "";
+  }
+
+  function getReportFiltersParam() {
+    const params = new URLSearchParams({
+      status: selectedStatus,
+      itemsPerPage: "50",
+    });
+
+    if (selectedMotoboy) {
+      params.set("motoboyId", selectedMotoboy);
+    }
+    if (selectedEstablishment) {
+      params.set("establishmentId", selectedEstablishment);
+    }
+    if (createdIn) {
+      params.set("createdIn", createdIn);
+      params.set("createdUntil", createdUntil || createdIn);
     }
 
-    async function onClickSearch(){
-        if(loading){
-            return
-        }
+    return params;
+  }
 
-        setLoading(true)
-
-        let param = '';
-        if(selectedMotoboy){
-            param = `${param}&motoboyId=${selectedMotoboy}`
-        }
-        if(selectedEstablishment){
-            param = `${param}&establishmentId=${selectedEstablishment}`
-        }
-        if(createdIn){
-            param = `${param}&createdIn=${createdIn}T00:00:00.000Z`
-        }
-        if(createdUntil){
-            param = `${param}&createdUntil=${createdUntil}T23:59:59.000Z`
-        }
-
-        try {
-            const response = await api.get(`/delivery?status=${selectedStatus}&itemsPerPage=50${param}`)
-            setReports(response.data.data)
-            setPage(2)
-            setReportsCount(response.data.count)
-            setLoading(false)
-        } catch (error: any) {
-            alert(error.response.data.message)
-            setLoading(false)
-        }
+  async function onClickSearch() {
+    if (loading) {
+      return;
     }
 
-    async function getData(){
-        try {
-            const motoboysResponse = await api.get('/user?type=motoboy')
-            const shopkeepersResponse = await api.get('/user?type=shopkeeper')
+    setLoading(true);
 
-            setMotoboys(motoboysResponse.data.data)
-            setShopkeepers(shopkeepersResponse.data.data)
-            setLoadingInitial(false)
-        } catch (error: any) {
-            alert(error.response.data.message)
-        }
+    try {
+      const params = getReportFiltersParam();
+      const response = await api.get(`/delivery?${params.toString()}`);
+      setReports(response.data.data);
+      setPage(2);
+      setReportsCount(response.data.count);
+      setLoading(false);
+    } catch (error: any) {
+      alert(getErrorMessage(error, "Não foi possível buscar os relatórios."));
+      setLoading(false);
+    }
+  }
+
+  async function getData() {
+    try {
+      const motoboysResponse = await api.get("/user?type=motoboy");
+      const shopkeepersResponse = await api.get("/user?type=shopkeeper");
+      setMotoboys(motoboysResponse.data.data);
+      setShopkeepers(shopkeepersResponse.data.data);
+      setLoadingInitial(false);
+    } catch (error: any) {
+      alert(error.response.data.message);
+    }
+  }
+
+  async function moreReports() {
+    if (loadingMoreReports) {
+      return;
     }
 
-    async function moreReports(){
-        if(loadingMoreReports){
-            return
-        }
+    setLoadingMoreReports(true);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 5803b8a (revert)
     try {
       const params = getReportFiltersParam();
       params.set("page", String(page));
@@ -151,6 +184,7 @@ export function Reports() {
       setReportsCount(response.data.count);
       setLoadingMoreReports(false);
     } catch (error: any) {
+<<<<<<< HEAD
       alert(
         getErrorMessage(error, "Não foi possível carregar mais relatórios."),
       );
@@ -160,54 +194,120 @@ export function Reports() {
 =======
         setLoadingMoreReports(true)
 >>>>>>> parent of 613ac8c (atualização front)
+=======
+      alert(getErrorMessage(error, "Não foi possível carregar mais relatórios."));
+      setLoadingMoreReports(false);
+    }
+  }
+>>>>>>> parent of 5803b8a (revert)
 
-        let param = '';
-        if(selectedMotoboy){
-            param = `${param}&motoboyId=${selectedMotoboy}`
-        }
-        if(selectedEstablishment){
-            param = `${param}&establishmentId=${selectedEstablishment}`
-        }
-        if(createdIn){
-            param = `${param}&createdIn=${createdIn}T00:00:00.000Z`
-        }
-        if(createdUntil){
-            param = `${param}&createdUntil=${createdUntil}T23:59:59.000Z`
-        }
+  function getDate(date: string) {
+    const dateArray = date.split("T")[0].split("-");
+    return `${dateArray[2]}/${dateArray[1]}/${dateArray[0]}`;
+  }
 
-        try {
-            const response = await api.get(`/delivery?status=${selectedStatus}&page=${page}&itemsPerPage=50${param}`)
-            setReports([...reports, ...response.data.data])
-            setPage(page + 1)
-            setLoadingMoreReports(false)
-        } catch (error: any) {
-            alert(error.response.data.message)
-            setLoadingMoreReports(false)
-        }
+  function getHours(date: string) {
+    return date.split("T")[1].substring(0, 5);
+  }
+
+  function extractIfoodOrderNumber(observation?: string) {
+    if (!observation) return null;
+
+    const match = observation.match(
+      /Pedido\s*(?:do\s*)?iFood(?:\s*(?:n[ºo°.]|n[uú]mero))?\s*[:#-]?\s*([A-Za-z0-9-]+)/i,
+    );
+
+    return match?.[1] || null;
+  }
+
+  function getObservation(report: Report) {
+    const originalObservation = report.observation?.trim() || "";
+
+    const isIfoodOrder = Boolean(
+      report.isIfoodOrder ||
+      report.ifoodDisplayId ||
+      report.ifoodOrderId ||
+      originalObservation.includes("Pedido iFood"),
+    );
+
+    if (!isIfoodOrder) {
+      return originalObservation;
     }
 
-    function getDate(date: string) {
-        const dateArray = date.split('T')[0].split('-');
-        return `${dateArray[2]}/${dateArray[1]}/${dateArray[0]}`
+    const oldObservationWasOverwritten =
+      originalObservation.toLowerCase() === "sem observação." ||
+      originalObservation.toLowerCase() === "sem observação" ||
+      originalObservation.includes("Pedido iFood importado automaticamente");
+
+    const orderNumber =
+      report.ifoodDisplayId ||
+      report.ifoodOrderId ||
+      extractIfoodOrderNumber(originalObservation) ||
+      "não informado";
+
+    const addressParts = [
+      report.clientAddress,
+      report.addressNeighborhood
+        ? `Bairro: ${report.addressNeighborhood}`
+        : null,
+      [report.addressCity, report.addressState].filter(Boolean).join("/") ||
+        null,
+      report.addressZipCode ? `CEP: ${report.addressZipCode}` : null,
+    ].filter(Boolean);
+
+    const addressText = addressParts.join(" | ");
+
+    const parts = [
+      `Pedido iFood #${orderNumber}`,
+      report.ifoodMerchantName || report.ifoodMerchantId
+        ? `Loja iFood: ${report.ifoodMerchantName || report.ifoodMerchantId}`
+        : null,
+      addressText ? `Endereço: ${addressText}` : null,
+      report.addressMapsUrl ? `Localização: ${report.addressMapsUrl}` : null,
+      !oldObservationWasOverwritten && originalObservation
+        ? originalObservation
+        : null,
+      report.destinationObservation
+        ? `Observação destino: ${report.destinationObservation}`
+        : report.destinationObservationConfirmed
+          ? "Observação destino: Sem observação."
+          : null,
+    ].filter(Boolean);
+
+    return parts.join(" | ");
+  }
+
+  function getErrorMessage(error: any, fallback: string) {
+    const responseMessage = error.response?.data?.message;
+    const metaMessage = error.response?.data?.metaMessage;
+    const message = Array.isArray(responseMessage)
+      ? responseMessage.join(" ")
+      : (responseMessage ?? error?.message ?? fallback);
+
+    if (metaMessage && metaMessage !== message) {
+      return `${message} Detalhe: ${metaMessage}`;
     }
 
-    function getHours(date: string) {
-        return date.split('T')[1].substring(0, 5)
+    return message;
+  }
+
+  function buildFinancialSettlementParams() {
+    if (!selectedEstablishment) {
+      throw new Error("Selecione um estabelecimento para gerar o fechamento.");
     }
 
-    function extractIfoodOrderNumber(observation?: string) {
-        if (!observation) return null
-
-        const match = observation.match(
-            /Pedido\s*(?:do\s*)?iFood(?:\s*(?:n[ºo°.]|n[uú]mero))?\s*[:#-]?\s*([A-Za-z0-9-]+)/i
-        )
-
-        return match?.[1] || null
+    if (!createdIn || !createdUntil) {
+      throw new Error("Informe o período inicial e final do fechamento.");
     }
 
-    function getObservation(report: Report) {
-        const originalObservation = report.observation?.trim() || ""
+    const params = new URLSearchParams({
+      establishmentId: selectedEstablishment,
+      createdIn,
+      createdUntil,
+      status: selectedStatus,
+    });
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     if (includeMonthlyFee) {
       params.set("includeMonthlyFee", "true");
@@ -223,203 +323,214 @@ export function Reports() {
             originalObservation.includes("Pedido iFood")
         )
 >>>>>>> parent of 613ac8c (atualização front)
+=======
+    return params;
+  }
+>>>>>>> parent of 5803b8a (revert)
 
-        if (!isIfoodOrder) {
-            return originalObservation
-        }
+  async function downloadFinancialSettlementPdf(params: URLSearchParams) {
+    const response = await api.get(
+      `/financial-settlement/pdf?${params.toString()}`,
+      { responseType: "blob" },
+    );
+    const blob = new Blob([response.data], { type: "application/pdf" });
+    const url = window.URL.createObjectURL(blob);
+    const disposition = response.headers?.["content-disposition"] as
+      | string
+      | undefined;
+    const filename =
+      disposition?.match(/filename="?([^";]+)"?/)?.[1] ??
+      "fechamento-rappidex.pdf";
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
 
-        const oldObservationWasOverwritten =
-            originalObservation.toLowerCase() === "sem observação." ||
-            originalObservation.toLowerCase() === "sem observação" ||
-            originalObservation.includes("Pedido iFood importado automaticamente")
+    return filename;
+  }
 
-        const orderNumber =
-            report.ifoodDisplayId ||
-            report.ifoodOrderId ||
-            extractIfoodOrderNumber(originalObservation) ||
-            "não informado"
+  async function handleGeneratePdf() {
+    if (settlementLoading) return;
 
-        const addressParts = [
-            report.clientAddress,
-            report.addressNeighborhood ? `Bairro: ${report.addressNeighborhood}` : null,
-            [report.addressCity, report.addressState].filter(Boolean).join("/") || null,
-            report.addressZipCode ? `CEP: ${report.addressZipCode}` : null,
-        ].filter(Boolean)
-
-        const addressText = addressParts.join(" | ")
-
-        const parts = [
-            `Pedido iFood #${orderNumber}`,
-            report.ifoodMerchantName || report.ifoodMerchantId
-                ? `Loja iFood: ${report.ifoodMerchantName || report.ifoodMerchantId}`
-                : null,
-            addressText ? `Endereço: ${addressText}` : null,
-            report.addressMapsUrl ? `Localização: ${report.addressMapsUrl}` : null,
-            !oldObservationWasOverwritten && originalObservation
-                ? originalObservation
-                : null,
-            report.destinationObservation
-                ? `Observação destino: ${report.destinationObservation}`
-                : report.destinationObservationConfirmed
-                    ? "Observação destino: Sem observação."
-                    : null,
-        ].filter(Boolean)
-
-        return parts.join(" | ")
+    setSettlementLoading(true);
+    setSettlementFeedback(null);
+    try {
+      const params = buildFinancialSettlementParams();
+      await downloadFinancialSettlementPdf(params);
+      setSettlementFeedback({
+        type: "success",
+        message: "PDF do fechamento gerado e baixado com sucesso.",
+      });
+    } catch (error: any) {
+      setSettlementFeedback({
+        type: "error",
+        message: getErrorMessage(
+          error,
+          "Não foi possível gerar o PDF do fechamento.",
+        ),
+      });
+    } finally {
+      setSettlementLoading(false);
     }
+  }
 
-    useEffect(() => {
-        if(loadingInitial) {
-            getData()
-        }
-    })
+  async function handleSendWhatsapp() {
+    if (settlementLoading) return;
 
-    return (
-        <Container>
-            {loadingInitial ? 
-                <Loader size={40} biggestColor='gray' smallestColor='gray' /> :
-                <FiltersContainer>
-                    <h2>Filtros</h2>
-                    <DataContainer>
-                        <form>
-                            <label htmlFor="birthday">De:</label>
-                            <input type="date" value={createdIn} onChange={e => setCreatedIn(e.target.value)} /> <br/>
-                        </form>
-                    </DataContainer>
+    const whatsappWindow = window.open("", "_blank");
 
-                    <DataContainer>
-                        <form>
-                            <label htmlFor="birthday">Até:</label>
-                            <input disabled={!createdIn} type="date" min={createdIn} value={createdUntil} onChange={e => setCreatedUntil(e.target.value)} />
-                        </form>
-                    </DataContainer>
+    setSettlementLoading(true);
+    setSettlementFeedback(null);
+    try {
+      const params = buildFinancialSettlementParams();
+      await downloadFinancialSettlementPdf(params);
+      const response = await api.post(
+        `/financial-settlement/send-whatsapp?${params.toString()}`,
+      );
+      const whatsappUrl = response.data?.whatsappUrl;
 
-                    <Filter>
-                        <p>Status:</p>
-                        <select 
-                            value={selectedStatus}
-                            onChange={e => setSelectedStatus(e.target.value)}
-                        >
-                            <option value="PENDENTE">PENDENTE</option>
-                            <option value="ACAMINHO">A CAMINHO</option>
-                            <option value="COLETADO">COLETADO</option>
-                            <option value="FINALIZADO">FINALIZADO</option>
-                            <option value="CANCELADO">CANCELADO</option>
-                        </select>           
-                    </Filter>
+      if (!whatsappUrl) {
+        throw new Error("Link do WhatsApp não foi gerado.");
+      }
 
-                    <Filter>
-                        <p>Motoboy:</p>
-                        <select 
-                            value={selectedMotoboy}
-                            onChange={e => setSelectedMotoboy(e.target.value)}
-                        >
-                            <option value=''>Todos</option>
-                            {
-                                motoboys.map((motoboy: User) => 
-                                    <option key={motoboy.id} value={motoboy.id}>{motoboy.name}</option>
-                                )
-                            }
-                        </select>           
-                    </Filter>
+      if (whatsappWindow) {
+        whatsappWindow.location.href = whatsappUrl;
+      } else {
+        window.open(whatsappUrl, "_blank");
+      }
 
-                    <Filter>
-                        <p>Estabelecimento:</p>
-                        <select 
-                            value={selectedEstablishment}
-                            onChange={e => setSelectedEstablishment(e.target.value)}
-                        >
-                            <option value=''>Todos</option>
-                            {
-                                shopkeepers.map((shopkeeper: User) => 
-                                    <option key={shopkeeper.id} value={shopkeeper.id}>{shopkeeper.name}</option>
-                                )
-                            }
-                        </select>           
-                    </Filter>
+      setSettlementFeedback({
+        type: "success",
+        message:
+          response.data?.message ??
+          "PDF gerado e WhatsApp aberto com a mensagem pronta. Anexe o PDF manualmente antes de enviar.",
+      });
+    } catch (error: any) {
+      whatsappWindow?.close();
+      setSettlementFeedback({
+        type: "error",
+        message: getErrorMessage(
+          error,
+          "Não foi possível preparar o envio manual pelo WhatsApp.",
+        ),
+      });
+    } finally {
+      setSettlementLoading(false);
+    }
+  }
 
-                    <SearchButton onClick={onClickSearch}>
-                    {loading ?
-                        <Loader size={20} biggestColor='gray' smallestColor='gray' /> :
-                        "Buscar"
-                    }
-                    </SearchButton>
-                </FiltersContainer>
-            }
-            {!loadingInitial &&
-            <ReportsContainer>
-                <h3>Quantidade de entregas: {reportsCount}</h3>
-                {reports.map((report: Report) => {
-                    const observation = getObservation(report)
+  async function handleGeneratePdfAndSendWhatsapp() {
+    await handleSendWhatsapp();
+  }
 
-                    return <Delivery key={report.id}>
-                        <ContainerShopkeeper>
-                            <ProfileImageContainer>
-                                <ShopkeeperProfileImage src={report.establishmentImage} />
-                            </ProfileImageContainer>
-                            <ShopkeeperInfo>
-                                <p>{report.establishmentName}</p>
-                                {formatNumber(`+55${report.establishmentPhone}`)}
-                            </ShopkeeperInfo>
-                        </ContainerShopkeeper>
-                        <ContainerOrder>
-                            <p>Status: {report.status}</p>
-                            <p>Forma de pagamento: {report.payment}</p>
-                            <p>Valor: R$ {report.value}</p>
-                            <p>Pix: {report.establishmentPix}</p>
-                            <p>Refrigerante: {report.soda}</p>
-                            {observation && 
-                                <p><b>Observação: {observation}</b></p>
-                            }
-                        </ContainerOrder>
+  useEffect(() => {
+    if (loadingInitial) {
+      getData();
+    }
+  });
 
-                        <ContainerInfo>
-                            <p>Cliente: {report.clientName} </p>
-                                {/* {formatNumber(`+55${report.clientPhone}`)} */}
-                        </ContainerInfo>
+  return (
+    <Container>
+      {!loadingInitial && (
+        <PageHeader>
+          <h1>Relatórios</h1>
+        </PageHeader>
+      )}
+      {loadingInitial ? (
+        <Loader size={40} biggestColor="gray" smallestColor="gray" />
+      ) : (
+        <FiltersContainer>
+          <h2>Filtros</h2>
+          <DataContainer>
+            <form>
+              <label htmlFor="birthday">De:</label>
+              <input
+                type="date"
+                value={createdIn}
+                onChange={(e) => {
+                  setCreatedIn(e.target.value);
+                  if (createdUntil && e.target.value > createdUntil) {
+                    setCreatedUntil(e.target.value);
+                  }
+                }}
+              />{" "}
+              <br />
+            </form>
+          </DataContainer>
 
-                        <ContainerInfo>
-                            <p>Motoboy: {report.motoboyName} </p>
-                            {formatNumber(`+55${report.motoboyPhone}`)}
-                        </ContainerInfo>
+          <DataContainer>
+            <form>
+              <label htmlFor="birthday">Até:</label>
+              <input
+                disabled={!createdIn}
+                type="date"
+                min={createdIn}
+                value={createdUntil}
+                onChange={(e) => setCreatedUntil(e.target.value)}
+              />
+            </form>
+          </DataContainer>
 
-                        <ContainerInfo>
-                            <p>Criado em {getDate(report.createdAt)} as {getHours(report.createdAt)}</p>
-                        </ContainerInfo>
+          <Filter>
+            <p>Status:</p>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+            >
+              <option value="PENDENTE">PENDENTE</option>
+              <option value="ACAMINHO">A CAMINHO</option>
+              <option value="COLETADO">COLETADO</option>
+              <option value="FINALIZADO">FINALIZADO</option>
+              <option value="CANCELADO">CANCELADO</option>
+            </select>
+          </Filter>
 
-                        <ContainerInfo>
-                            {report.onCoursedAt && 
-                                <p>Atribuído: {getHours(report.onCoursedAt)}</p>
-                            }
-                            {report.collectedAt && 
-                                <p>Coletado: {getHours(report.collectedAt)}</p>
-                            }
-                            {report.finishedAt && 
-                                <p>Finalizado: {getHours(report.finishedAt)}</p>
-                            }
-                        </ContainerInfo>
+          <Filter>
+            <p>Motoboy:</p>
+            <select
+              value={selectedMotoboy}
+              onChange={(e) => setSelectedMotoboy(e.target.value)}
+            >
+              <option value="">Todos</option>
+              {motoboys.map((motoboy: User) => (
+                <option key={motoboy.id} value={motoboy.id}>
+                  {motoboy.name}
+                </option>
+              ))}
+            </select>
+          </Filter>
 
-                        {(permission === 'admin' || permission === 'superadmin') && 
-                            <EditContainer>
-                                <OnClickLink to='/editar-entrega' state={report}>
-                                    Editar 
-                                    <PencilSimple size={15} />
-                                </OnClickLink>
-                            </EditContainer>
-                        }
-                    </Delivery>
-                })}
+          <Filter>
+            <p>Estabelecimento:</p>
+            <select
+              value={selectedEstablishment}
+              onChange={(e) => setSelectedEstablishment(e.target.value)}
+            >
+              <option value="">Todos</option>
+              {shopkeepers.map((shopkeeper: User) => (
+                <option key={shopkeeper.id} value={shopkeeper.id}>
+                  {shopkeeper.name}
+                </option>
+              ))}
+            </select>
+          </Filter>
 
-                {reports.length < reportsCount && 
-                    <EditContainer onClick={moreReports}>
-                        {loadingMoreReports ?
-                            <Loader size={15} biggestColor='gray' smallestColor='gray' /> :
-                            <OnClickLink to='#'>mais... <DownloadSimple size={15} /></OnClickLink>
-                        }
-                    </EditContainer>
-                }
+          <SearchButton onClick={onClickSearch}>
+            {loading ? (
+              <Loader size={20} biggestColor="gray" smallestColor="gray" />
+            ) : (
+              "Buscar"
+            )}
+          </SearchButton>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 5803b8a (revert)
           {isAdminUser && (
             <SettlementSummary>
               <strong>Fechamento financeiro</strong>
@@ -428,6 +539,7 @@ export function Reports() {
                 WhatsApp, o PDF será baixado e o WhatsApp será aberto com a
                 mensagem pronta; anexe o PDF manualmente antes de enviar.
               </p>
+<<<<<<< HEAD
               <CheckboxLabel>
                 <input
                   type="checkbox"
@@ -439,6 +551,8 @@ export function Reports() {
                 />
                 Incluir mensalidade no relatório
               </CheckboxLabel>
+=======
+>>>>>>> parent of 5803b8a (revert)
               <ActionBar>
                 <ActionButton
                   type="button"
@@ -579,10 +693,13 @@ export function Reports() {
       )}
     </Container>
   );
+<<<<<<< HEAD
 =======
             </ReportsContainer>
             }
         </Container>
     )
 >>>>>>> parent of 613ac8c (atualização front)
+=======
+>>>>>>> parent of 5803b8a (revert)
 }

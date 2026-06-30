@@ -29,6 +29,25 @@ import {
   HistoryList,
   LoadMoreButton,
   EmptyState,
+  PageHeader,
+  SearchInput,
+  StoreSection,
+  StoreSectionHeader,
+  StoreList,
+  StoreCard,
+  StoreCardHeader,
+  StoreTitleGroup,
+  StoreName,
+  StoreStatusBadge,
+  StoreFieldsGrid,
+  FieldGroup,
+  FieldLabel,
+  LocationPreview,
+  LocationLink,
+  StoreActions,
+  CardHeader,
+  CardContent,
+  ToggleGroup,
 } from './styles.ts';
 
 export function IfoodClients() {
@@ -144,6 +163,20 @@ export function IfoodClients() {
       ?.merchantId;
 
     return String(firstActiveMerchantId || '').trim();
+  }
+
+  function getLocationHref(locationLink: string) {
+    const normalizedLink = locationLink.trim();
+
+    if (!normalizedLink) {
+      return '';
+    }
+
+    if (/^https?:\/\//i.test(normalizedLink)) {
+      return normalizedLink;
+    }
+
+    return `https://${normalizedLink}`;
   }
 
   async function handleSave(shopkeeper: User) {
@@ -274,13 +307,15 @@ export function IfoodClients() {
   return (
     <Container>
       <Content>
-        <Title>Empresas Cadastradas</Title>
-        <Subtitle>
-          Vincule cada lojista ao Merchant ID do iFood para permitir a importação
-          dos pedidos corretamente.
-        </Subtitle>
+        <PageHeader>
+          <Title>Empresas Cadastradas</Title>
+          <Subtitle>
+            Vincule cada lojista ao Merchant ID do iFood para permitir a importação
+            dos pedidos corretamente.
+          </Subtitle>
+        </PageHeader>
 
-        <Input
+        <SearchInput
           onChange={(event) => setSearchTerm(event.target.value)}
           placeholder="Pesquisar empresa por nome"
           value={searchTerm}
@@ -296,113 +331,175 @@ export function IfoodClients() {
           ) : (
             filteredShopkeepers.map((shopkeeper) => (
             <Card key={shopkeeper.id}>
-              <ShopkeeperName>{shopkeeper.name}</ShopkeeperName>
-
-              <Actions>
-                <Checkbox>
-                  <input
-                    checked={Boolean(shopkeeper.useIfoodIntegration)}
-                    onChange={(event) =>
-                      updateLocalUser(shopkeeper.id, {
-                        useIfoodIntegration: event.target.checked,
-                        usesExternalIfoodPdv: event.target.checked
-                          ? Boolean(shopkeeper.usesExternalIfoodPdv)
-                          : false,
-                        ifoodMerchantId: event.target.checked
-                          ? shopkeeper.ifoodMerchantId
-                          : '',
-                      })
-                    }
-                    type="checkbox"
-                  />
-                  Usar integração iFood
-                </Checkbox>
-
-                {shopkeeper.useIfoodIntegration && (
-                  <Checkbox>
-                    <input
-                      checked={Boolean(shopkeeper.usesExternalIfoodPdv)}
-                      onChange={(event) =>
-                        updateLocalUser(shopkeeper.id, {
-                          usesExternalIfoodPdv: event.target.checked,
-                        })
-                      }
-                      type="checkbox"
-                    />
-                    Usa PDV externo integrado ao iFood?
-                  </Checkbox>
-                )}
-
+              <CardHeader>
                 <div>
-                  <MerchantIdLabel htmlFor={`merchant-${shopkeeper.id}`}>
-                    Merchant ID (legado)
-                  </MerchantIdLabel>
-                  <Input
-                    disabled={!shopkeeper.useIfoodIntegration}
-                    id={`merchant-${shopkeeper.id}`}
-                    onChange={(event) =>
-                      updateLocalUser(shopkeeper.id, {
-                        ifoodMerchantId: event.target.value,
-                      })
-                    }
-                    placeholder="Compatibilidade com cadastro antigo"
-                    value={shopkeeper.ifoodMerchantId || ''}
-                  />
+                  <ShopkeeperName>{shopkeeper.name}</ShopkeeperName>
+                  <Subtitle>
+                    Gerencie as lojas vinculadas e os créditos iFood desta empresa.
+                  </Subtitle>
                 </div>
-                <div>
-                  <MerchantIdLabel>Lojas iFood vinculadas</MerchantIdLabel>
-                  {(shopkeeper.ifoodMerchants || []).map((merchant, index) => (
-                    <div key={`${shopkeeper.id}-${index}`} style={{ border: '1px solid #555', borderRadius: 8, padding: 10, marginBottom: 8 }}>
-                      <Input
-                        disabled={!shopkeeper.useIfoodIntegration}
-                        placeholder="Nome da loja"
-                        value={merchant.name || ''}
-                        onChange={(event) => updateLocalUser(shopkeeper.id, {
-                          ifoodMerchants: (shopkeeper.ifoodMerchants || []).map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item),
-                        })}
+              </CardHeader>
+
+              <CardContent>
+                <Actions>
+                  <ToggleGroup>
+                    <Checkbox>
+                      <input
+                        checked={Boolean(shopkeeper.useIfoodIntegration)}
+                        onChange={(event) =>
+                          updateLocalUser(shopkeeper.id, {
+                            useIfoodIntegration: event.target.checked,
+                            usesExternalIfoodPdv: event.target.checked
+                              ? Boolean(shopkeeper.usesExternalIfoodPdv)
+                              : false,
+                            ifoodMerchantId: event.target.checked
+                              ? shopkeeper.ifoodMerchantId
+                              : '',
+                          })
+                        }
+                        type="checkbox"
                       />
-                      <Input
-                        disabled={!shopkeeper.useIfoodIntegration}
-                        placeholder="Merchant ID"
-                        value={merchant.merchantId || ''}
-                        onChange={(event) => updateLocalUser(shopkeeper.id, {
-                          ifoodMerchants: (shopkeeper.ifoodMerchants || []).map((item, itemIndex) => itemIndex === index ? { ...item, merchantId: event.target.value } : item),
-                        })}
-                      />
-                      <Input
-                        disabled={!shopkeeper.useIfoodIntegration}
-                        placeholder="Endereço de coleta (opcional)"
-                        value={merchant.pickupAddress || ''}
-                        onChange={(event) => updateLocalUser(shopkeeper.id, {
-                          ifoodMerchants: (shopkeeper.ifoodMerchants || []).map((item, itemIndex) => itemIndex === index ? { ...item, pickupAddress: event.target.value } : item),
-                        })}
-                      />
+                      Usar integração iFood
+                    </Checkbox>
+
+                    {shopkeeper.useIfoodIntegration && (
                       <Checkbox>
                         <input
-                          disabled={!shopkeeper.useIfoodIntegration}
+                          checked={Boolean(shopkeeper.usesExternalIfoodPdv)}
+                          onChange={(event) =>
+                            updateLocalUser(shopkeeper.id, {
+                              usesExternalIfoodPdv: event.target.checked,
+                            })
+                          }
                           type="checkbox"
-                          checked={merchant.enabled !== false}
-                          onChange={(event) => updateLocalUser(shopkeeper.id, {
-                            ifoodMerchants: (shopkeeper.ifoodMerchants || []).map((item, itemIndex) => itemIndex === index ? { ...item, enabled: event.target.checked } : item),
-                          })}
-                        /> Ativa
+                        />
+                        Usa PDV externo integrado ao iFood?
                       </Checkbox>
-                      <CreditButton type="button" onClick={() => updateLocalUser(shopkeeper.id, { ifoodMerchants: (shopkeeper.ifoodMerchants || []).filter((_, itemIndex) => itemIndex !== index) })}>Remover loja</CreditButton>
-                    </div>
-                  ))}
-                  <CreditButton type="button" disabled={!shopkeeper.useIfoodIntegration} onClick={() => {
-                    const updatedMerchants = [
-                      ...(shopkeeper.ifoodMerchants || []),
-                      { merchantId: '', name: '', enabled: true, pickupAddress: '' },
-                    ];
-                    updateLocalUser(shopkeeper.id, {
-                      ifoodMerchants: updatedMerchants,
-                      ifoodMerchantId: resolveLegacyMerchantId(shopkeeper.ifoodMerchantId || '', updatedMerchants),
-                    });
-                  }}>Adicionar loja iFood</CreditButton>
-                </div>
+                    )}
+                  </ToggleGroup>
 
-                <CreditSummary>
+                  <FieldGroup>
+                    <MerchantIdLabel htmlFor={`merchant-${shopkeeper.id}`}>
+                      Merchant ID (legado)
+                    </MerchantIdLabel>
+                    <Input
+                      disabled={!shopkeeper.useIfoodIntegration}
+                      id={`merchant-${shopkeeper.id}`}
+                      onChange={(event) =>
+                        updateLocalUser(shopkeeper.id, {
+                          ifoodMerchantId: event.target.value,
+                        })
+                      }
+                      placeholder="Compatibilidade com cadastro antigo"
+                      value={shopkeeper.ifoodMerchantId || ''}
+                    />
+                  </FieldGroup>
+
+                  <StoreSection>
+                    <StoreSectionHeader>
+                      <div>
+                        <MerchantIdLabel>Lojas iFood vinculadas</MerchantIdLabel>
+                        <Subtitle>
+                          Cadastre o nome exibido no card, o Merchant ID e o link de localização.
+                        </Subtitle>
+                      </div>
+                      <CreditButton type="button" disabled={!shopkeeper.useIfoodIntegration} onClick={() => {
+                        const updatedMerchants = [
+                          ...(shopkeeper.ifoodMerchants || []),
+                          { merchantId: '', name: '', enabled: true, pickupAddress: '' },
+                        ];
+                        updateLocalUser(shopkeeper.id, {
+                          ifoodMerchants: updatedMerchants,
+                          ifoodMerchantId: resolveLegacyMerchantId(shopkeeper.ifoodMerchantId || '', updatedMerchants),
+                        });
+                      }}>Adicionar loja iFood</CreditButton>
+                    </StoreSectionHeader>
+
+                    <StoreList>
+                      {(shopkeeper.ifoodMerchants || []).map((merchant, index) => {
+                        const locationLink = String(merchant.pickupAddress || '').trim();
+                        const locationHref = getLocationHref(locationLink);
+
+                        return (
+                          <StoreCard key={`${shopkeeper.id}-${index}`}>
+                            <StoreCardHeader>
+                              <StoreTitleGroup>
+                                <StoreName>{merchant.name || `Loja ${index + 1}`}</StoreName>
+                                {locationLink ? (
+                                  <LocationLink href={locationHref} target="_blank" rel="noreferrer">
+                                    Abrir localização
+                                  </LocationLink>
+                                ) : (
+                                  <LocationPreview>Nenhum link de localização informado.</LocationPreview>
+                                )}
+                              </StoreTitleGroup>
+                              <StoreStatusBadge $isActive={merchant.enabled !== false}>
+                                {merchant.enabled !== false ? 'Ativa' : 'Inativa'}
+                              </StoreStatusBadge>
+                            </StoreCardHeader>
+
+                            <StoreFieldsGrid>
+                              <FieldGroup>
+                                <FieldLabel>Nome que aparece no card</FieldLabel>
+                                <Input
+                                  disabled={!shopkeeper.useIfoodIntegration}
+                                  placeholder="Nome que aparece no card"
+                                  value={merchant.name || ''}
+                                  onChange={(event) => updateLocalUser(shopkeeper.id, {
+                                    ifoodMerchants: (shopkeeper.ifoodMerchants || []).map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item),
+                                  })}
+                                />
+                              </FieldGroup>
+
+                              <FieldGroup>
+                                <FieldLabel>Merchant ID</FieldLabel>
+                                <Input
+                                  disabled={!shopkeeper.useIfoodIntegration}
+                                  placeholder="Merchant ID"
+                                  value={merchant.merchantId || ''}
+                                  onChange={(event) => updateLocalUser(shopkeeper.id, {
+                                    ifoodMerchants: (shopkeeper.ifoodMerchants || []).map((item, itemIndex) => itemIndex === index ? { ...item, merchantId: event.target.value } : item),
+                                  })}
+                                />
+                              </FieldGroup>
+
+                              <FieldGroup>
+                                <FieldLabel>Link da localização da loja</FieldLabel>
+                                <Input
+                                  disabled={!shopkeeper.useIfoodIntegration}
+                                  placeholder="Cole o link do Google Maps/localização"
+                                  value={merchant.pickupAddress || ''}
+                                  onChange={(event) => updateLocalUser(shopkeeper.id, {
+                                    ifoodMerchants: (shopkeeper.ifoodMerchants || []).map((item, itemIndex) => itemIndex === index ? { ...item, pickupAddress: event.target.value } : item),
+                                  })}
+                                />
+                              </FieldGroup>
+                            </StoreFieldsGrid>
+
+                            {locationLink && (
+                              <LocationPreview title={locationLink}>{locationLink}</LocationPreview>
+                            )}
+
+                            <StoreActions>
+                              <Checkbox>
+                                <input
+                                  disabled={!shopkeeper.useIfoodIntegration}
+                                  type="checkbox"
+                                  checked={merchant.enabled !== false}
+                                  onChange={(event) => updateLocalUser(shopkeeper.id, {
+                                    ifoodMerchants: (shopkeeper.ifoodMerchants || []).map((item, itemIndex) => itemIndex === index ? { ...item, enabled: event.target.checked } : item),
+                                  })}
+                                /> Ativa
+                              </Checkbox>
+                              <CreditButton type="button" onClick={() => updateLocalUser(shopkeeper.id, { ifoodMerchants: (shopkeeper.ifoodMerchants || []).filter((_, itemIndex) => itemIndex !== index) })}>Remover loja</CreditButton>
+                            </StoreActions>
+                          </StoreCard>
+                        );
+                      })}
+                    </StoreList>
+                  </StoreSection>
+
+                  <CreditSummary>
                   <CreditLine>Liberados: {shopkeeper.ifoodOrdersReleased || 0}</CreditLine>
                   <CreditLine>Utilizados: {shopkeeper.ifoodOrdersUsed || 0}</CreditLine>
                   <CreditLine>Disponíveis: {shopkeeper.ifoodOrdersAvailable || 0}</CreditLine>
@@ -438,9 +535,9 @@ export function IfoodClients() {
                     {loadingHistoryUser === shopkeeper.id ? 'Carregando...' : 'Ver histórico'}
                   </HistoryButton>
                 </CreditButtons>
-              </Actions>
+                </Actions>
 
-              <SaveButton
+                <SaveButton
                 disabled={savingUser === shopkeeper.user}
                 onClick={() => handleSave(shopkeeper)}
                 type="button"
@@ -450,7 +547,8 @@ export function IfoodClients() {
                 ) : (
                   'Salvar'
                 )}
-              </SaveButton>
+                </SaveButton>
+              </CardContent>
               
               {Array.isArray(historyByUser[shopkeeper.id]) &&
                 historyByUser[shopkeeper.id]?.length > 0 && (
