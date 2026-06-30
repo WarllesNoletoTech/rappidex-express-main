@@ -7,7 +7,6 @@ import { Router } from './Router'
 import { GlobalStyle } from './styles/global'
 import { defaultTheme } from './styles/themes/default'
 import { DeliveryContextProvider } from './context/DeliveryContext'
-import { AutoclickProtection } from './components/AutoclickProtection'
 
 function App() {
 
@@ -23,7 +22,6 @@ function App() {
 
       <BrowserRouter>
         <DeliveryContextProvider>
-          <AutoclickProtection />
           <Router />
         </DeliveryContextProvider>
       </BrowserRouter>
