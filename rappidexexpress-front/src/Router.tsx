@@ -26,6 +26,7 @@ export function Router() {
     <Routes>
       <Route path="/termos-de-uso" element={<TermsOfUse />} />
       <Route path="/politica-de-privacidade" element={<PrivacyPolicy />} />
+      <Route path="/login" element={<Login />} />
       { 
       !token ? <Route path="/" element={<Login />} /> :
         <Route path="/" element={<DefaultLayout />}>
