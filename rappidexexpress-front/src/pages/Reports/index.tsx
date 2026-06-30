@@ -28,6 +28,7 @@ import {
   ActionButton,
   SettlementSummary,
   SettlementFeedback,
+  CheckboxLabel,
 } from "./styles";
 import api from "../../services/api";
 import { DeliveryContext } from "../../context/DeliveryContext";
@@ -60,6 +61,7 @@ export function Reports() {
   const [selectedEstablishment, setSelectedEstablishment] = useState("");
   const [createdIn, setCreatedIn] = useState("");
   const [createdUntil, setCreatedUntil] = useState("");
+  const [includeMonthlyFee, setIncludeMonthlyFee] = useState(false);
 
   const isAdminUser = permission === "admin" || permission === "superadmin";
 
@@ -141,7 +143,9 @@ export function Reports() {
       setReportsCount(response.data.count);
       setLoadingMoreReports(false);
     } catch (error: any) {
-      alert(getErrorMessage(error, "Não foi possível carregar mais relatórios."));
+      alert(
+        getErrorMessage(error, "Não foi possível carregar mais relatórios."),
+      );
       setLoadingMoreReports(false);
     }
   }
@@ -251,6 +255,10 @@ export function Reports() {
       createdUntil,
       status: selectedStatus,
     });
+
+    if (includeMonthlyFee) {
+      params.set("includeMonthlyFee", "true");
+    }
 
     return params;
   }
@@ -462,6 +470,17 @@ export function Reports() {
                 WhatsApp, o PDF será baixado e o WhatsApp será aberto com a
                 mensagem pronta; anexe o PDF manualmente antes de enviar.
               </p>
+              <CheckboxLabel>
+                <input
+                  type="checkbox"
+                  checked={includeMonthlyFee}
+                  onChange={(event) =>
+                    setIncludeMonthlyFee(event.target.checked)
+                  }
+                  disabled={settlementLoading}
+                />
+                Incluir mensalidade no relatório
+              </CheckboxLabel>
               <ActionBar>
                 <ActionButton
                   type="button"

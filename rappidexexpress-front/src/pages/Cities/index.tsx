@@ -78,6 +78,7 @@ export function Cities() {
   const [selectedState, setSelectedState] = useState("");
   const [cityWhatsappMessage, setCityWhatsappMessage] = useState("");
   const [deliveryFeeValue, setDeliveryFeeValue] = useState("");
+  const [monthlyFeeValue, setMonthlyFeeValue] = useState("");
   const [deliveryValue, setDeliveryValue] = useState("");
   const [pixKey, setPixKey] = useState("");
   const [editingCityId, setEditingCityId] = useState<string | null>(null);
@@ -144,6 +145,7 @@ export function Cities() {
     setSelectedState("");
     setCityWhatsappMessage("");
     setDeliveryFeeValue("");
+    setMonthlyFeeValue("");
     setDeliveryValue("");
     setPixKey("");
     setEditingCityId(null);
@@ -158,10 +160,22 @@ export function Cities() {
         ? String(city.deliveryFeeValue).replace(".", ",")
         : "",
     );
+    setMonthlyFeeValue(
+      city.monthlyFeeValue !== undefined
+        ? String(city.monthlyFeeValue).replace(".", ",")
+        : "",
+    );
     setDeliveryValue(city.deliveryValue ?? "");
     setPixKey(city.pixKey ?? "");
     setEditingCityId(city.id ? String(city.id) : null);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function formatCurrencyInput(value: string) {
+    return value
+      .replace(/[^\d,.]/g, "")
+      .replace(/(,.*),/g, "$1")
+      .replace(/(\.\d{0,2}).*/g, "$1");
   }
 
   function parseDeliveryFeeValue(value: string) {
@@ -189,6 +203,7 @@ export function Cities() {
       state: selectedState,
       clientWhatsappMessage: cityWhatsappMessage.trim(),
       deliveryFeeValue: parseDeliveryFeeValue(deliveryFeeValue),
+      monthlyFeeValue: parseDeliveryFeeValue(monthlyFeeValue),
       deliveryValue: deliveryValue.trim(),
       pixKey: pixKey.trim(),
     };
@@ -308,6 +323,16 @@ export function Cities() {
           />
 
           <CityInput
+            placeholder="Valor da Mensalidade. Ex: 99,90"
+            inputMode="decimal"
+            value={monthlyFeeValue}
+            onChange={(event) =>
+              setMonthlyFeeValue(formatCurrencyInput(event.target.value))
+            }
+            disabled={isSubmitting}
+          />
+
+          <CityInput
             placeholder="Valor pago ao entregador por entrega. Ex: 7,00"
             value={deliveryValue}
             onChange={(event) => setDeliveryValue(event.target.value)}
@@ -327,7 +352,6 @@ export function Cities() {
             onChange={(event) => setCityWhatsappMessage(event.target.value)}
             disabled={isSubmitting}
           />
-
 
           <FormActions>
             <SubmitButton
@@ -377,6 +401,15 @@ export function Cities() {
                       Valor cobrado do estabelecimento por entrega:{" "}
                       {city.deliveryFeeValue !== undefined
                         ? city.deliveryFeeValue.toLocaleString("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          })
+                        : "não configurado"}
+                    </CityState>
+                    <CityState>
+                      Valor da mensalidade:{" "}
+                      {city.monthlyFeeValue !== undefined
+                        ? city.monthlyFeeValue.toLocaleString("pt-BR", {
                             style: "currency",
                             currency: "BRL",
                           })

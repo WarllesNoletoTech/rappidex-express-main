@@ -376,3 +376,18 @@ export const SettlementFeedback = styled.div<SettlementFeedbackProps>`
   line-height: 1.45;
   overflow-wrap: anywhere;
 `;
+
+export const CheckboxLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.9rem 0 0;
+  color: ${(props) => props.theme["gray-100"]};
+  font-weight: 700;
+
+  input {
+    width: 1rem;
+    height: 1rem;
+    accent-color: ${(props) => props.theme["brand-yellow"]};
+  }
+`;
