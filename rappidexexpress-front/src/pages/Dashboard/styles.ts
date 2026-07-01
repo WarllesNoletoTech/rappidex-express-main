@@ -485,6 +485,23 @@ export const InfoValue = styled.span`
   }
 `;
 
+export const IfoodSodaWarning = styled.span`
+  color: #ef4444;
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.35;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+
+  @media (max-width: 480px) {
+    font-size: 0.84rem;
+  }
+`;
+
 export const OperationalPanel = styled.div`
   margin: 0.65rem 0 0;
   display: flex;
