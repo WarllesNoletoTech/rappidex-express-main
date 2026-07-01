@@ -4,6 +4,7 @@ import { Colors, LoaderProps } from '.'
 
 export const SpanLoader = styled.span<LoaderProps>`
     & {
+        display: inline-block;
         width: ${(props) => props.size}px;
         height: ${(props) => props.size}px;
         border-radius: 50%;

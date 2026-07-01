@@ -9,6 +9,7 @@ export const Container = styled.main`
   align-items: flex-start;
   justify-content: center;
   padding: clamp(1rem, 3vw, 2rem) 1rem 2rem;
+  box-sizing: border-box;
   overflow-x: hidden;
 
   @media (max-width: 768px) {
@@ -41,6 +42,8 @@ export const FiltersContainer = styled.div`
   width: min(100%, 64rem);
   max-width: 100%;
   padding: clamp(1rem, 3vw, 1.4rem);
+  box-sizing: border-box;
+  overflow-x: hidden;
   background: linear-gradient(
     145deg,
     ${(props) => props.theme["gray-700"]},
@@ -55,9 +58,26 @@ export const FiltersContainer = styled.div`
     max-width: 100%;
     padding: 1rem;
   }
+
+  @media (max-width: 480px) {
+    padding: 0.85rem;
+
+    input,
+    select,
+    button {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+  }
 `;
 
 export const DataContainer = styled.div`
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
@@ -65,6 +85,8 @@ export const DataContainer = styled.div`
 
   form {
     max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   input {
@@ -73,6 +95,11 @@ export const DataContainer = styled.div`
     border-radius: ${(props) => props.theme["radius-md"]};
     background: ${(props) => props.theme["gray-800"]};
     color: ${(props) => props.theme["gray-100"]};
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    box-sizing: border-box;
     padding: 0 0.75rem;
   }
 
@@ -82,6 +109,8 @@ export const DataContainer = styled.div`
 
     form {
       width: 100%;
+      max-width: 100%;
+      min-width: 0;
     }
 
     label {
@@ -97,6 +126,10 @@ export const DataContainer = styled.div`
 `;
 
 export const Filter = styled.div`
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
@@ -110,6 +143,7 @@ export const Filter = styled.div`
     border-radius: ${(props) => props.theme["radius-md"]};
     background-color: ${(props) => props.theme["gray-800"]};
     color: ${(props) => props.theme["gray-100"]};
+    box-sizing: border-box;
     padding: 0 0.75rem;
   }
 
