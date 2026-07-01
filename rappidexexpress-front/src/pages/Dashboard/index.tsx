@@ -47,6 +47,7 @@ import {
   InfoRow,
   InfoSection,
   InfoValue,
+  IfoodSodaWarning,
   Link,
   OperationalPanel,
   PerformanceCard,
@@ -439,7 +440,13 @@ const DeliveryCard = memo(function DeliveryCard({
 
             <InfoRow>
               <InfoLabel>Refrigerante</InfoLabel>
-              <InfoValue>{report.soda || "Não informado"}</InfoValue>
+              {isIfoodOrder ? (
+                <IfoodSodaWarning>
+                  Confirmar refrigerante com o estabelecimento
+                </IfoodSodaWarning>
+              ) : (
+                <InfoValue>{report.soda || "Não informado"}</InfoValue>
+              )}
             </InfoRow>
           </InfoSection>
         </ContainerOrder>
