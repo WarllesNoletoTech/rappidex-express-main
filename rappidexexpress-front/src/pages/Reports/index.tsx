@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import {
   DownloadSimple,
   FilePdf,
@@ -64,6 +64,7 @@ export function Reports() {
   const [includeMonthlyFee, setIncludeMonthlyFee] = useState(false);
 
   const isAdminUser = permission === "admin" || permission === "superadmin";
+  const reportRequestControllerRef = useRef<AbortController | null>(null);
 
   function formatNumber(number: string) {
     const cleaned = ("" + number).replace(/\D/g, "");
@@ -96,22 +97,30 @@ export function Reports() {
   }
 
   async function onClickSearch() {
-    if (loading) {
-      return;
-    }
+    reportRequestControllerRef.current?.abort();
+    const controller = new AbortController();
+    reportRequestControllerRef.current = controller;
 
     setLoading(true);
 
     try {
       const params = getReportFiltersParam();
-      const response = await api.get(`/delivery?${params.toString()}`);
+      const response = await api.get(`/delivery?${params.toString()}`, {
+        signal: controller.signal,
+      });
       setReports(response.data.data);
       setPage(2);
       setReportsCount(response.data.count);
-      setLoading(false);
     } catch (error: any) {
+      if (error.name === "CanceledError" || error.code === "ERR_CANCELED") {
+        return;
+      }
       alert(getErrorMessage(error, "Não foi possível buscar os relatórios."));
-      setLoading(false);
+    } finally {
+      if (reportRequestControllerRef.current === controller) {
+        reportRequestControllerRef.current = null;
+        setLoading(false);
+      }
     }
   }
 
@@ -128,24 +137,35 @@ export function Reports() {
   }
 
   async function moreReports() {
-    if (loadingMoreReports) {
+    if (loadingMoreReports || loading) {
       return;
     }
 
+    reportRequestControllerRef.current?.abort();
+    const controller = new AbortController();
+    reportRequestControllerRef.current = controller;
     setLoadingMoreReports(true);
 
     try {
       const params = getReportFiltersParam();
       params.set("page", String(page));
-      const response = await api.get(`/delivery?${params.toString()}`);
+      const response = await api.get(`/delivery?${params.toString()}`, {
+        signal: controller.signal,
+      });
       setReports([...reports, ...response.data.data]);
       setPage(page + 1);
       setReportsCount(response.data.count);
-      setLoadingMoreReports(false);
     } catch (error: any) {
+      if (error.name === "CanceledError" || error.code === "ERR_CANCELED") {
+        return;
+      }
       alert(
         getErrorMessage(error, "Não foi possível carregar mais relatórios."),
       );
+    } finally {
+      if (reportRequestControllerRef.current === controller) {
+        reportRequestControllerRef.current = null;
+      }
       setLoadingMoreReports(false);
     }
   }
@@ -366,7 +386,13 @@ export function Reports() {
     if (loadingInitial) {
       getData();
     }
-  });
+  }, [loadingInitial]);
+
+  useEffect(() => {
+    return () => {
+      reportRequestControllerRef.current?.abort();
+    };
+  }, []);
 
   return (
     <Container>
