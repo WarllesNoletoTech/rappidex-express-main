@@ -1,6 +1,12 @@
 export interface User {
   id: string;
   isActive: boolean;
+  blocked?: boolean;
+  blockedReason?: string;
+  blockedAt?: string;
+  blockedBySystem?: boolean;
+  unblockedAt?: string;
+  unblockedBy?: string;
   ifoodMerchantId?: string;
   ifoodMerchants?: Array<{
     merchantId: string;
@@ -9,6 +15,7 @@ export interface User {
     pickupAddress?: string;
   }>;
   ifoodClientId?: string;
+  cityId?: string;
   location: string;
   name: string;
   permission: string;
@@ -16,8 +23,10 @@ export interface User {
   profileImage: string;
   type: string;
   user: string;
+  pix?: string;
   useIfoodIntegration?: boolean;
   usesExternalIfoodPdv?: boolean;
+  ifoodWithoutPreparationTime?: boolean;
   ifoodOrdersReleased?: number;
   ifoodOrdersUsed?: number;
   ifoodOrdersAvailable?: number;

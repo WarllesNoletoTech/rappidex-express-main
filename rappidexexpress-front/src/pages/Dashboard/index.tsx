@@ -10,18 +10,27 @@ import {
 } from "react";
 import { Modal } from "@mui/material";
 import { io } from "socket.io-client";
-import { MapPin, WhatsappLogo } from "phosphor-react";
+import { ChartLineUp, MapPin, Money, WhatsappLogo } from "phosphor-react";
 
 import { DeliveryContext } from "../../context/DeliveryContext";
 import api, { SOCKET_URL } from "../../services/api";
 import { City, Motoboy, Report } from "../../shared/interfaces";
+import type {
+  DeliveryPerformance,
+  DeliveryPerformancePeriods,
+} from "../../shared/utils/deliveryPerformance";
 import {
   getLinkToWhatsapp,
   messageTypes,
 } from "../../shared/constants/whatsapp.constants";
 
 import {
+  AdminCitySelect,
+  AdminDateInput,
+  AdminFilters,
+  AdminFinancialCard,
   BaseButton,
+  ClosedWeekSettlementCard,
   Container,
   ContainerButtons,
   ContainerDeliveries,
@@ -33,9 +42,24 @@ import {
   ContainerStatus,
   Delivery,
   Flag,
+  IfoodStoreBadge,
+  InfoLabel,
+  InfoRow,
+  InfoSection,
+  InfoValue,
   Link,
+  OperationalPanel,
+  PerformanceCard,
+  PerformanceHint,
+  PerformanceMetric,
+  PerformanceMetrics,
+  PerformanceValue,
+  SettlementDetails,
+  SettlementMessage,
+  DeliveryGainToast,
   OrderActions,
   OrderButton,
+  SectionTitle,
   SelectContainer,
   ShopkeeperInfo,
   ShopkeeperProfileImage,
@@ -47,7 +71,16 @@ import {
   StatusDelivery,
   UserType,
 } from "../../shared/constants/enums.constants";
-
+import {
+  calculateReportsMotoboyTotal,
+  formatMotoboyDeliveryGain,
+  getClosedWeekSettlementDisplayMessage,
+  getLastClosedRappidexWeekYmdRange,
+  getMotoboyDeliveryValue,
+  getRappidexWeekYmdRange,
+  getTodayYmdRange,
+  isClosedWeekSettlementWaitingRepasseDay,
+} from "../../shared/utils/deliveryPerformance";
 
 type DeliveryUpdateData = {
   status?: string;
@@ -61,6 +94,16 @@ type DeliveryUpdateData = {
 type DeliveryCountsDelta = {
   pending: number;
   assigned: number;
+};
+
+type AdminFinancialCounts = {
+  totalEntregas: number;
+  valorAdminPorEntrega: number;
+  totalValorAdmin: number;
+  cityId?: string | null;
+  cityName?: string | null;
+  createdIn?: string | null;
+  createdUntil?: string | null;
 };
 
 type DeliveryCardProps = {
@@ -87,7 +130,6 @@ type DeliveryCardProps = {
   shouldShowObservationPreview: boolean;
   canManageReleaseOrder: boolean;
 };
-
 
 const hasActiveIfoodMerchant = (source: any): boolean => {
   const legacyMerchant = String(source?.ifoodMerchantId || "").trim();
@@ -146,7 +188,9 @@ const getIfoodClientLocationLink = (
   return match[1].trim();
 };
 
-const getGoogleMapsLinkFromAddress = (address?: string | null): string | null => {
+const getGoogleMapsLinkFromAddress = (
+  address?: string | null,
+): string | null => {
   const normalizedAddress = String(address || "").trim();
 
   if (!normalizedAddress) {
@@ -156,284 +200,493 @@ const getGoogleMapsLinkFromAddress = (address?: string | null): string | null =>
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(normalizedAddress)}`;
 };
 
-const DeliveryCard = memo(
-  function DeliveryCard({
-    report,
-    statusFilter,
-    permission,
-    isCurrentUserMotoboy,
-    selectedMotoboy,
-    motoboys,
-    isUpdating,
-    onSelectMotoboy,
-    onSave,
-    onCancel,
-    onNextStep,
-    onDelete,
-    onDeliveryCodeChange,
-    getButtonText,
-    getHours,
-    formatPhoneNumber,
-    getIfoodOrderNumber,
-    getClientWhatsappMessage,
-    deliveryCode,
-    previewObservation,
-    shouldShowObservationPreview,
-    canManageReleaseOrder,
-  }: DeliveryCardProps) {
-    const getClientVisualStatus = (delivery: Report) => {
-      if (delivery.collectedAt) return "Motoboy está a caminho";
-      if (delivery.arrivedAtStoreAt && !delivery.collectedAt) {
-        return "Motoboy chegou ao estabelecimento";
-      }
-      if (delivery.motoboyId && !delivery.arrivedAtStoreAt) {
-        return "Motoboy indo até o estabelecimento";
-      }
-      return "Aguardando motoboy";
+function isAdminOrSuperadminUser(permission: string | null) {
+  return permission === UserType.ADMIN || permission === UserType.SUPERADMIN;
+}
+
+function isDeliveryAssigned(report: Report) {
+  return Boolean(report.motoboyId || report.motoboyName || report.motoboy);
+}
+
+function canCancelDelivery(report: Report, permission: string | null) {
+  return isAdminOrSuperadminUser(permission) || !isDeliveryAssigned(report);
+}
+
+function playMoneySound() {
+  try {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+
+    if (!AudioContextClass) return;
+
+    const audioContext = new AudioContextClass();
+
+    const playTone = (
+      frequency: number,
+      startTime: number,
+      duration: number,
+    ) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.type = "triangle";
+      oscillator.frequency.setValueAtTime(frequency, startTime);
+
+      gainNode.gain.setValueAtTime(0.0001, startTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.25, startTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+
+      return oscillator;
     };
 
-    const getEstablishmentVisualStatus = (delivery: Report) => {
-      if (delivery.collectedAt) return "Pedido coletado pelo motoboy";
-      if (delivery.arrivedAtStoreAt && !delivery.collectedAt) {
-        return "Motoboy chegou no estabelecimento";
-      }
-      if (delivery.motoboyId && !delivery.arrivedAtStoreAt) {
-        return "Motoboy indo até o estabelecimento";
-      }
-      return "Aguardando motoboy";
-    };
+    const now = audioContext.currentTime;
 
-    const isIfoodOrder =
-      Boolean(report.isIfoodOrder) ||
-      report.observation?.includes("Pedido iFood #") ||
-      report.observation?.includes("Pedido iFood");
-    const ifoodOrderNumber =
-      getIfoodOrderNumber(report.observation) ||
-      (report as any).ifoodDisplayId ||
-      (report as any).ifoodOrderId ||
-      null;
-    const ifoodClientLocationLink = report.addressMapsUrl || getIfoodClientLocationLink(
-      report.observation,
-      report.clientLocation,
+    playTone(880, now, 0.12);
+    playTone(1175, now + 0.12, 0.16);
+    const finalTone = playTone(1568, now + 0.28, 0.18);
+
+    finalTone.addEventListener(
+      "ended",
+      () => void audioContext.close().catch(() => {}),
+      { once: true },
     );
-    const ifoodClientAddress = report.clientAddress || getIfoodClientAddress(report.observation);
-    const googleMapsAddressLink = getGoogleMapsLinkFromAddress(ifoodClientAddress);
-    const motoboySelectId = `motoboy-${report.id}`;
-    const shouldShowDeliveryCodeInput =
-      isIfoodOrder &&
-      (report.status === StatusDelivery.ARRIVED_AT_DESTINATION ||
-        report.status === StatusDelivery.AWAITING_CODE);
-    const isMotoboy = isCurrentUserMotoboy;
+  } catch (error) {
+    console.warn("Som de ganho bloqueado ou indisponível", error);
+  }
+}
 
-    const canMotoboyAdvanceDelivery =
-      isMotoboy &&
-      [
-        StatusDelivery.PENDING,
-        StatusDelivery.ONCOURSE,
-        StatusDelivery.ARRIVED_AT_STORE,
-        StatusDelivery.COLLECTED,
-        StatusDelivery.ARRIVED_AT_DESTINATION,
-        StatusDelivery.AWAITING_CODE,
-      ].includes(report.status as StatusDelivery);
+const DeliveryCard = memo(function DeliveryCard({
+  report,
+  statusFilter,
+  permission,
+  isCurrentUserMotoboy,
+  selectedMotoboy,
+  motoboys,
+  isUpdating,
+  onSelectMotoboy,
+  onSave,
+  onCancel,
+  onNextStep,
+  onDelete,
+  onDeliveryCodeChange,
+  getButtonText,
+  getHours,
+  formatPhoneNumber,
+  getIfoodOrderNumber,
+  getClientWhatsappMessage,
+  deliveryCode,
+  previewObservation,
+  shouldShowObservationPreview,
+  canManageReleaseOrder,
+}: DeliveryCardProps) {
+  const getClientVisualStatus = (delivery: Report) => {
+    if (delivery.collectedAt) return "Motoboy está a caminho";
+    if (delivery.arrivedAtStoreAt && !delivery.collectedAt) {
+      return "Motoboy chegou ao estabelecimento";
+    }
+    if (delivery.motoboyId && !delivery.arrivedAtStoreAt) {
+      return "Motoboy indo até o estabelecimento";
+    }
+    return "Aguardando motoboy";
+  };
 
-    const canAdvanceDelivery = canManageReleaseOrder || canMotoboyAdvanceDelivery;
-    const canShowDeliveryCodeInput = canManageReleaseOrder || isMotoboy;
+  const getEstablishmentVisualStatus = (delivery: Report) => {
+    if (delivery.collectedAt) return "Pedido coletado pelo motoboy";
+    if (delivery.arrivedAtStoreAt && !delivery.collectedAt) {
+      return "Motoboy chegou no estabelecimento";
+    }
+    if (delivery.motoboyId && !delivery.arrivedAtStoreAt) {
+      return "Motoboy indo até o estabelecimento";
+    }
+    return "Aguardando motoboy";
+  };
 
-    return (
-      <Delivery
-        isfree={report.status === StatusDelivery.PENDING}
-        isIfood={isIfoodOrder}
-      >
-        <ContainerShopkeeper>
-          <ContainerImagem>
-            <ShopkeeperProfileImage src={report.establishmentImage} />
-          </ContainerImagem>
+  const isIfoodOrder =
+    Boolean(report.isIfoodOrder) ||
+    report.observation?.includes("Pedido iFood #") ||
+    report.observation?.includes("Pedido iFood");
+  const ifoodOrderNumber =
+    getIfoodOrderNumber(report.observation) ||
+    (report as any).ifoodDisplayId ||
+    (report as any).ifoodOrderId ||
+    null;
+  const ifoodClientLocationLink =
+    report.addressMapsUrl ||
+    getIfoodClientLocationLink(report.observation, report.clientLocation);
+  const ifoodClientAddress =
+    report.clientAddress || getIfoodClientAddress(report.observation);
+  const googleMapsAddressLink =
+    getGoogleMapsLinkFromAddress(ifoodClientAddress);
+  const ifoodMerchantName = String(report.ifoodMerchantName || "").trim();
+  const ifoodMerchantLocation = String(
+    report.ifoodMerchantLocation || "",
+  ).trim();
+  const ifoodMerchantId = String(report.ifoodMerchantId || "").trim();
+  const nomeLojaCard = isIfoodOrder
+    ? ifoodMerchantName || ifoodMerchantId || report.establishmentName
+    : report.establishmentName;
+  const localizacaoLojaCard = isIfoodOrder
+    ? ifoodMerchantLocation
+    : report.establishmentLocation;
+  const motoboySelectId = `motoboy-${report.id}`;
+  const shouldShowDeliveryCodeInput =
+    isIfoodOrder &&
+    (report.status === StatusDelivery.ARRIVED_AT_DESTINATION ||
+      report.status === StatusDelivery.AWAITING_CODE);
+  const isMotoboy = isCurrentUserMotoboy;
 
-          <ShopkeeperInfo>
-            <p>{report.establishmentName}</p>
+  const canMotoboyAdvanceDelivery =
+    isMotoboy &&
+    [
+      StatusDelivery.PENDING,
+      StatusDelivery.ONCOURSE,
+      StatusDelivery.ARRIVED_AT_STORE,
+      StatusDelivery.COLLECTED,
+      StatusDelivery.ARRIVED_AT_DESTINATION,
+      StatusDelivery.AWAITING_CODE,
+    ].includes(report.status as StatusDelivery);
 
+  const canAdvanceDelivery = canManageReleaseOrder || canMotoboyAdvanceDelivery;
+  const canShowDeliveryCodeInput = canManageReleaseOrder || isMotoboy;
+  const canShowCancelButton = canCancelDelivery(report, permission);
+
+  return (
+    <Delivery
+      isfree={report.status === StatusDelivery.PENDING}
+      isIfood={isIfoodOrder}
+    >
+      <ContainerShopkeeper>
+        <ContainerImagem>
+          <ShopkeeperProfileImage src={report.establishmentImage} />
+        </ContainerImagem>
+
+        <ShopkeeperInfo>
+          {isIfoodOrder && <IfoodStoreBadge>Loja iFood</IfoodStoreBadge>}
+          <p>{nomeLojaCard}</p>
+
+          <Link
+            href={getLinkToWhatsapp(
+              report.establishmentPhone,
+              messageTypes.motoboy,
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {formatPhoneNumber(report.establishmentPhone)}{" "}
+            <WhatsappLogo size={18} />
+          </Link>
+
+          {localizacaoLojaCard && (
             <Link
-              href={getLinkToWhatsapp(
-                report.establishmentPhone,
-                messageTypes.motoboy,
-              )}
+              href={localizacaoLojaCard}
               target="_blank"
               rel="noopener noreferrer"
             >
-              {formatPhoneNumber(report.establishmentPhone)}{" "}
-              <WhatsappLogo size={18} />
+              <p>{isIfoodOrder ? "Abrir localização" : "Localização"}</p>{" "}
+              <MapPin size={18} />
             </Link>
+          )}
+        </ShopkeeperInfo>
+      </ContainerShopkeeper>
 
-            <Link
-              href={report.establishmentLocation}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <p>Localização</p> <MapPin size={18} />
-            </Link>
-          </ShopkeeperInfo>
-        </ContainerShopkeeper>
+      {statusFilter !== StatusDelivery.PENDING && (
+        <ContainerOrder>
+          <SectionTitle>Informações rápidas</SectionTitle>
 
-        {statusFilter !== StatusDelivery.PENDING && (
-          <ContainerOrder>
-            <ContainerStatus>
-              <p>Status:</p>
-              <Status type={report.status}>{report.status}</Status>
-            </ContainerStatus>
-            <p>
-              {permission === UserType.SHOPKEEPER
-                ? getEstablishmentVisualStatus(report)
-                : getClientVisualStatus(report)}
-            </p>
-            <p>Forma de pagamento: {report.payment}</p>
-            <p>Valor: R$ {report.value}</p>
-            <p>Pix: {report.establishmentPix}</p>
-            <p>Refrigerante: {report.soda}</p>
-          </ContainerOrder>
-        )}
+          <InfoSection>
+            <InfoRow>
+              <InfoLabel>Status</InfoLabel>
+              <InfoValue>
+                <ContainerStatus>
+                  <Status type={report.status}>{report.status}</Status>
+                </ContainerStatus>
+              </InfoValue>
+            </InfoRow>
 
-        <ContainerInfo>
-          <div>
-            {isIfoodOrder && <p>Pedido iFood: {ifoodOrderNumber || "Não informado"}</p>}
-            {isIfoodOrder && <p>Loja iFood: {report.ifoodMerchantName || report.ifoodMerchantId || "Não informada"}</p>}
+            <InfoRow>
+              <InfoLabel>Andamento</InfoLabel>
+              <InfoValue>
+                {permission === UserType.SHOPKEEPER
+                  ? getEstablishmentVisualStatus(report)
+                  : getClientVisualStatus(report)}
+              </InfoValue>
+            </InfoRow>
 
-            <p>Cliente: {report.clientName}</p>
-            {statusFilter !== StatusDelivery.PENDING && ifoodClientAddress && (
-              <p>Endereço: {ifoodClientAddress}</p>
+            <InfoRow>
+              <InfoLabel>Pagamento</InfoLabel>
+              <InfoValue>{report.payment || "Não informado"}</InfoValue>
+            </InfoRow>
+
+            <InfoRow>
+              <InfoLabel>Valor</InfoLabel>
+              <InfoValue>R$ {report.value}</InfoValue>
+            </InfoRow>
+
+            <InfoRow>
+              <InfoLabel>Pix</InfoLabel>
+              <InfoValue>
+                {report.establishmentPix || "Não informado"}
+              </InfoValue>
+            </InfoRow>
+
+            <InfoRow>
+              <InfoLabel>Refrigerante</InfoLabel>
+              <InfoValue>{report.soda || "Não informado"}</InfoValue>
+            </InfoRow>
+          </InfoSection>
+        </ContainerOrder>
+      )}
+
+      <ContainerInfo>
+        <SectionTitle>Detalhes do pedido</SectionTitle>
+
+        <InfoSection>
+          {isIfoodOrder && (
+            <>
+              <InfoRow>
+                <InfoLabel>Pedido iFood</InfoLabel>
+                <InfoValue>{ifoodOrderNumber || "Não informado"}</InfoValue>
+              </InfoRow>
+
+              <InfoRow>
+                <InfoLabel>Loja iFood</InfoLabel>
+                <InfoValue>
+                  {ifoodMerchantName || ifoodMerchantId || "Não informada"}
+                </InfoValue>
+              </InfoRow>
+            </>
+          )}
+
+          <InfoRow>
+            <InfoLabel>Cliente</InfoLabel>
+            <InfoValue>{report.clientName || "Não informado"}</InfoValue>
+          </InfoRow>
+
+          {statusFilter !== StatusDelivery.PENDING && ifoodClientAddress && (
+            <InfoRow>
+              <InfoLabel>Endereço</InfoLabel>
+              <InfoValue>{ifoodClientAddress}</InfoValue>
+            </InfoRow>
+          )}
+
+          {statusFilter !== StatusDelivery.PENDING &&
+            ifoodClientLocationLink && (
+              <InfoRow>
+                <InfoLabel>Mapa</InfoLabel>
+                <InfoValue>
+                  <Link
+                    href={ifoodClientLocationLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <p>Ver no mapa</p> <MapPin size={18} />
+                  </Link>
+                </InfoValue>
+              </InfoRow>
             )}
-            {statusFilter !== StatusDelivery.PENDING && ifoodClientLocationLink && (
-              <Link
-                href={ifoodClientLocationLink}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <p>Ver no mapa</p> <MapPin size={18} />
-              </Link>
+
+          {statusFilter !== StatusDelivery.PENDING &&
+            !ifoodClientLocationLink &&
+            googleMapsAddressLink && (
+              <InfoRow>
+                <InfoLabel>Mapa</InfoLabel>
+                <InfoValue>
+                  <Link
+                    href={googleMapsAddressLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <p>Ver no mapa</p> <MapPin size={18} />
+                  </Link>
+                </InfoValue>
+              </InfoRow>
             )}
-            {statusFilter !== StatusDelivery.PENDING && !ifoodClientLocationLink && googleMapsAddressLink && (
-              <Link
-                href={googleMapsAddressLink}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <p>Ver no mapa</p> <MapPin size={18} />
-              </Link>
-            )}
-          </div>
 
           {statusFilter !== StatusDelivery.PENDING && (
-            <Link
-              href={getLinkToWhatsapp(
-                report.clientPhone,
-                messageTypes.client,
-                getClientWhatsappMessage(report),
-              )}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {formatPhoneNumber(report.clientPhone)} <WhatsappLogo size={18} />
-            </Link>
+            <InfoRow>
+              <InfoLabel>WhatsApp</InfoLabel>
+              <InfoValue>
+                <Link
+                  href={getLinkToWhatsapp(
+                    report.clientPhone,
+                    messageTypes.client,
+                    getClientWhatsappMessage(report),
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {formatPhoneNumber(report.clientPhone)}{" "}
+                  <WhatsappLogo size={18} />
+                </Link>
+              </InfoValue>
+            </InfoRow>
           )}
-        </ContainerInfo>
+        </InfoSection>
 
-        {statusFilter !== StatusDelivery.PENDING && (
-          <ContainerInfo>
-            <p>Motoboy: {report.motoboyName}</p>
-            <Link
-              href={getLinkToWhatsapp(
-                report.motoboyPhone,
-                messageTypes.establishment,
-              )}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {formatPhoneNumber(report.motoboyPhone)} <WhatsappLogo size={18} />
-            </Link>
-          </ContainerInfo>
-        )}
+        <InfoSection $variant="operational">
+          <InfoRow>
+            <InfoLabel>Criado</InfoLabel>
+            <InfoValue>
+              {report.createdAt ? getHours(report.createdAt) : "Não informado"}
+            </InfoValue>
+          </InfoRow>
 
-        <ContainerInfo>
-          {report.createdAt && <p>Criado: {getHours(report.createdAt)}</p>}
-          {report.onCoursedAt && <p>Atribuído: {getHours(report.onCoursedAt)}</p>}
-          {report.collectedAt && <p>Coletado: {getHours(report.collectedAt)}</p>}
-          {report.finishedAt && <p>Finalizado: {getHours(report.finishedAt)}</p>}
-        </ContainerInfo>
-
-        {canManageReleaseOrder && (
-          <SelectContainer>
-            <label htmlFor={motoboySelectId}>Motoboy:</label>
-            <select
-              id={motoboySelectId}
-              disabled={isUpdating}
-              value={selectedMotoboy}
-              onChange={(e) => onSelectMotoboy(report.id, e.target.value)}
-            >
-              <option value="">Selecione o motoboy:</option>
-              {motoboys.map((motoboy: Motoboy) => (
-                <option key={motoboy.id} value={motoboy.id}>
-                  {motoboy.name}
-                </option>
-              ))}
-            </select>
-          </SelectContainer>
-        )}
-
-        {shouldShowDeliveryCodeInput && canShowDeliveryCodeInput && (
-          <SelectContainer>
-            <label htmlFor={`delivery-code-${report.id}`}>
-              Código de entrega iFood:
-            </label>
-            <input
-              id={`delivery-code-${report.id}`}
-              type="text"
-              value={deliveryCode}
-              disabled={isUpdating}
-              placeholder="Digite o código informado pelo cliente"
-              onChange={(e) => onDeliveryCodeChange(report.id, e.target.value)}
-            />
-          </SelectContainer>
-        )}
-
-        {(report.status === StatusDelivery.ARRIVED_AT_DESTINATION ||
-          report.status === StatusDelivery.AWAITING_CODE) &&
-          shouldShowObservationPreview && (
-            <ContainerInfo>
-              <p><b>Observação do pedido:</b> {previewObservation || "Sem observação."}</p>
-            </ContainerInfo>
+          {report.onCoursedAt && (
+            <InfoRow>
+              <InfoLabel>Atribuído</InfoLabel>
+              <InfoValue>{getHours(report.onCoursedAt)}</InfoValue>
+            </InfoRow>
           )}
 
-        <OrderActions>
-          {canManageReleaseOrder &&
-            report.status !== StatusDelivery.PENDING && (
-              <>
-                <OrderButton typebutton={true} onClick={() => onSave(report)}>
-                  Salvar
-                </OrderButton>
-                <OrderButton typebutton={false} onClick={() => onCancel(report)}>
-                  Cancelar
-                </OrderButton>
-              </>
+          {report.collectedAt && (
+            <InfoRow>
+              <InfoLabel>Coletado</InfoLabel>
+              <InfoValue>{getHours(report.collectedAt)}</InfoValue>
+            </InfoRow>
+          )}
+
+          {report.finishedAt && (
+            <InfoRow>
+              <InfoLabel>Finalizado</InfoLabel>
+              <InfoValue>{getHours(report.finishedAt)}</InfoValue>
+            </InfoRow>
+          )}
+
+          <InfoRow>
+            <InfoLabel>Motoboy</InfoLabel>
+            <InfoValue>{report.motoboyName || "Não atribuído"}</InfoValue>
+          </InfoRow>
+
+          {statusFilter !== StatusDelivery.PENDING && (
+            <InfoRow>
+              <InfoLabel>WhatsApp</InfoLabel>
+              <InfoValue>
+                <Link
+                  href={getLinkToWhatsapp(
+                    report.motoboyPhone,
+                    messageTypes.establishment,
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {formatPhoneNumber(report.motoboyPhone)}{" "}
+                  <WhatsappLogo size={18} />
+                </Link>
+              </InfoValue>
+            </InfoRow>
+          )}
+        </InfoSection>
+      </ContainerInfo>
+
+      {(canManageReleaseOrder ||
+        (shouldShowDeliveryCodeInput && canShowDeliveryCodeInput) ||
+        canAdvanceDelivery ||
+        (!isMotoboy && report.status === StatusDelivery.PENDING)) && (
+        <OperationalPanel>
+          <SectionTitle>Operação</SectionTitle>
+
+          {canManageReleaseOrder && (
+            <SelectContainer>
+              <label htmlFor={motoboySelectId}>Motoboy</label>
+              <select
+                id={motoboySelectId}
+                disabled={isUpdating}
+                value={selectedMotoboy}
+                onChange={(e) => onSelectMotoboy(report.id, e.target.value)}
+              >
+                <option value="">Selecione o motoboy</option>
+                {motoboys.map((motoboy: Motoboy) => (
+                  <option key={motoboy.id} value={motoboy.id}>
+                    {motoboy.name}
+                  </option>
+                ))}
+              </select>
+            </SelectContainer>
+          )}
+
+          {shouldShowDeliveryCodeInput && canShowDeliveryCodeInput && (
+            <SelectContainer>
+              <label htmlFor={`delivery-code-${report.id}`}>
+                Código de entrega iFood
+              </label>
+              <input
+                id={`delivery-code-${report.id}`}
+                type="text"
+                value={deliveryCode}
+                disabled={isUpdating}
+                placeholder="Digite o código informado pelo cliente"
+                onChange={(e) =>
+                  onDeliveryCodeChange(report.id, e.target.value)
+                }
+              />
+            </SelectContainer>
+          )}
+
+          <OrderActions>
+            {canManageReleaseOrder &&
+              report.status !== StatusDelivery.PENDING && (
+                <>
+                  <OrderButton typebutton={true} onClick={() => onSave(report)}>
+                    Salvar
+                  </OrderButton>
+                  {canShowCancelButton && (
+                    <OrderButton
+                      typebutton={false}
+                      onClick={() => onCancel(report)}
+                    >
+                      Cancelar
+                    </OrderButton>
+                  )}
+                </>
+              )}
+
+            {canAdvanceDelivery && (
+              <OrderButton typebutton={true} onClick={() => onNextStep(report)}>
+                {getButtonText(report.status, report)}
+              </OrderButton>
             )}
 
-          {canAdvanceDelivery && (
-            <OrderButton typebutton={true} onClick={() => onNextStep(report)}>
-              {getButtonText(report.status, report)}
-            </OrderButton>
-          )}
+            {!isMotoboy &&
+              report.status === StatusDelivery.PENDING &&
+              canShowCancelButton && (
+                <OrderButton
+                  typebutton={false}
+                  onClick={() => onDelete(report)}
+                >
+                  Apagar
+                </OrderButton>
+              )}
+          </OrderActions>
+        </OperationalPanel>
+      )}
 
-          {!isMotoboy && report.status === StatusDelivery.PENDING && (
-            <OrderButton typebutton={false} onClick={() => onDelete(report)}>
-              Apagar
-            </OrderButton>
-          )}
-        </OrderActions>
-      </Delivery>
-    );
-  },
-  areDeliveryCardPropsEqual,
-);
+      {(report.status === StatusDelivery.ARRIVED_AT_DESTINATION ||
+        report.status === StatusDelivery.AWAITING_CODE) &&
+        shouldShowObservationPreview && (
+          <ContainerInfo>
+            <SectionTitle>Observação</SectionTitle>
+            <p>
+              <b>Observação do pedido:</b>{" "}
+              {previewObservation || "Sem observação."}
+            </p>
+          </ContainerInfo>
+        )}
+    </Delivery>
+  );
+}, areDeliveryCardPropsEqual);
 
-function areDeliveryCardPropsEqual(prev: DeliveryCardProps, next: DeliveryCardProps) {
+function areDeliveryCardPropsEqual(
+  prev: DeliveryCardProps,
+  next: DeliveryCardProps,
+) {
   return (
     prev.report === next.report &&
     prev.statusFilter === next.statusFilter &&
@@ -455,11 +708,31 @@ export function Dashboard() {
   const [status, setStatus] = useState<string>(`${StatusDelivery.PENDING}`);
   const [loading, setLoading] = useState<boolean>(true);
   const [reports, setReports] = useState<Report[]>([]);
+  const [deliveryPerformanceCounts, setDeliveryPerformanceCounts] =
+    useState<DeliveryPerformancePeriods>({
+      today: { count: 0, total: 0 },
+      week: { count: 0, total: 0 },
+    });
+  const [performancePeriod, setPerformancePeriod] = useState<"week" | "today">(
+    "week",
+  );
+  const [closedWeekSettlement, setClosedWeekSettlement] =
+    useState<DeliveryPerformance>({ count: 0, total: 0 });
   const [cities, setCities] = useState<City[]>([]);
   const [motoboys, setMotoboys] = useState<Motoboy[]>([]);
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [assignedCount, setAssignedCount] = useState<number>(0);
   const [waitingReleaseCount, setWaitingReleaseCount] = useState<number>(0);
+  const [adminFinancialCounts, setAdminFinancialCounts] =
+    useState<AdminFinancialCounts>({
+      totalEntregas: 0,
+      valorAdminPorEntrega: 0,
+      totalValorAdmin: 0,
+      cityId: null,
+      cityName: null,
+      createdIn: null,
+      createdUntil: null,
+    });
   const [updatingDeliveryIds, setUpdatingDeliveryIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -468,6 +741,10 @@ export function Dashboard() {
     report: Report;
   } | null>(null);
   const [isCancelConfirmVisible, setIsCancelConfirmVisible] = useState(false);
+  const [deliveryGain, setDeliveryGain] = useState<{
+    id: number;
+    value: number;
+  } | null>(null);
 
   const [selectedMotoboyByReport, setSelectedMotoboyByReport] = useState<
     Record<string, string>
@@ -476,7 +753,9 @@ export function Dashboard() {
     Record<string, string>
   >({});
   const [currentUserId, setCurrentUserId] = useState<string>("");
-  const [isCurrentUserMotoboy, setIsCurrentUserMotoboy] = useState<boolean>(permission === UserType.MOTOBOY);
+  const [isCurrentUserMotoboy, setIsCurrentUserMotoboy] = useState<boolean>(
+    permission === UserType.MOTOBOY,
+  );
   const [currentCityId, setCurrentCityId] = useState<string>("");
   const [canViewReleaseTab, setCanViewReleaseTab] = useState<boolean>(
     permission === UserType.ADMIN || permission === UserType.SUPERADMIN,
@@ -484,13 +763,59 @@ export function Dashboard() {
   const [canManageReleaseOrder, setCanManageReleaseOrder] = useState<boolean>(
     permission === UserType.ADMIN || permission === UserType.SUPERADMIN,
   );
+  const [isCurrentUserSuperAdmin, setIsCurrentUserSuperAdmin] =
+    useState<boolean>(permission === UserType.SUPERADMIN);
+  const defaultAdminCounterRange = useMemo(() => getRappidexWeekYmdRange(), []);
+  const [adminCounterDateRange, setAdminCounterDateRange] = useState(
+    () => defaultAdminCounterRange,
+  );
   const reloadTimeoutRef = useRef<number | null>(null);
   const refreshRequestIdRef = useRef(0);
   const didFirstLoadRef = useRef(false);
+  const deliveryGainTimeoutRef = useRef<number | null>(null);
+  const earningToastRef = useRef<HTMLDivElement | null>(null);
 
-  const [observationModalDeliveryId, setObservationModalDeliveryId] = useState<string | null>(null);
-  const [observationTextByDeliveryId, setObservationTextByDeliveryId] = useState<Record<string, string>>({});
-  const [observationSavingId, setObservationSavingId] = useState<string | null>(null);
+  const [observationModalDeliveryId, setObservationModalDeliveryId] = useState<
+    string | null
+  >(null);
+  const [observationTextByDeliveryId, setObservationTextByDeliveryId] =
+    useState<Record<string, string>>({});
+  const [observationSavingId, setObservationSavingId] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    return () => {
+      if (deliveryGainTimeoutRef.current) {
+        window.clearTimeout(deliveryGainTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!deliveryGain) return;
+
+    const scrollAnimationFrame = window.requestAnimationFrame(() => {
+      const earningToast = earningToastRef.current;
+
+      if (!earningToast) return;
+
+      const { top, bottom, left, right } = earningToast.getBoundingClientRect();
+      const isToastVisible =
+        top >= 0 &&
+        bottom <= window.innerHeight &&
+        left >= 0 &&
+        right <= window.innerWidth;
+
+      if (!isToastVisible) {
+        earningToast.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
+
+    playMoneySound();
+
+    return () => window.cancelAnimationFrame(scrollAnimationFrame);
+  }, [deliveryGain]);
 
   useEffect(() => {
     api.defaults.headers.common.Authorization = `Bearer ${token}`;
@@ -556,6 +881,51 @@ export function Dashboard() {
     return new Set(status.split(",").filter(Boolean));
   }, [status]);
 
+  const selectedPerformance = deliveryPerformanceCounts[performancePeriod];
+  const performancePeriodLabel =
+    performancePeriod === "week" ? "na semana" : "hoje";
+  const formattedPerformanceValue = useMemo(
+    () =>
+      selectedPerformance.total.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      }),
+    [selectedPerformance.total],
+  );
+  const formattedClosedWeekSettlementValue = useMemo(
+    () =>
+      closedWeekSettlement.total.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      }),
+    [closedWeekSettlement.total],
+  );
+  const hasClosedWeekSettlementValue =
+    closedWeekSettlement.count > 0 || closedWeekSettlement.total > 0;
+  const shouldShowClosedWeekSettlement =
+    isCurrentUserMotoboy && isClosedWeekSettlementWaitingRepasseDay();
+  const closedWeekSettlementMessage = getClosedWeekSettlementDisplayMessage(
+    hasClosedWeekSettlementValue,
+  );
+  const isAdminDashboardUser =
+    permission === UserType.ADMIN || permission === UserType.SUPERADMIN;
+  const formattedAdminDeliveryFee = useMemo(
+    () =>
+      adminFinancialCounts.valorAdminPorEntrega.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      }),
+    [adminFinancialCounts.valorAdminPorEntrega],
+  );
+  const formattedAdminTotal = useMemo(
+    () =>
+      adminFinancialCounts.totalValorAdmin.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      }),
+    [adminFinancialCounts.totalValorAdmin],
+  );
+
   const clientWhatsappMessageByCityId = useMemo(() => {
     const cityMessageMap = new Map<string, string>();
 
@@ -594,7 +964,12 @@ export function Dashboard() {
       StatusDelivery.AWAITING_CODE,
     ];
 
-    return isActiveDelivery && Boolean(statusValue && assignedStatuses.includes(statusValue as StatusDelivery));
+    return (
+      isActiveDelivery &&
+      Boolean(
+        statusValue && assignedStatuses.includes(statusValue as StatusDelivery),
+      )
+    );
   }
 
   function getCountDelta(
@@ -662,6 +1037,24 @@ export function Dashboard() {
     return updatingDeliveryIds.has(deliveryId);
   }
 
+  function showDeliveryGain(report: Report) {
+    if (!isCurrentUserMotoboy) return;
+
+    if (deliveryGainTimeoutRef.current) {
+      window.clearTimeout(deliveryGainTimeoutRef.current);
+    }
+
+    setDeliveryGain({
+      id: Date.now(),
+      value: getMotoboyDeliveryValue(report, cities),
+    });
+
+    deliveryGainTimeoutRef.current = window.setTimeout(() => {
+      setDeliveryGain(null);
+      deliveryGainTimeoutRef.current = null;
+    }, 2800);
+  }
+
   const refreshDashboard = useCallback(
     async (showLoader = false) => {
       const requestId = ++refreshRequestIdRef.current;
@@ -671,11 +1064,26 @@ export function Dashboard() {
       }
 
       try {
-        const [currentResponse, countsResponse] = await Promise.all([
-          api.get(`/delivery?status=${status}`),
-          api.get("/delivery/counts"),
-        ]);
+        const countsParams = new URLSearchParams();
+        if (isCurrentUserSuperAdmin && currentCityId) {
+          countsParams.set("cityId", currentCityId);
+        }
+        countsParams.set("createdIn", adminCounterDateRange.start);
+        countsParams.set("createdUntil", adminCounterDateRange.end);
 
+        const deliveryParams = new URLSearchParams({ status });
+        if (isCurrentUserSuperAdmin && currentCityId) {
+          deliveryParams.set("cityId", currentCityId);
+        }
+
+        const countsUrl = countsParams.toString()
+          ? `/delivery/counts?${countsParams.toString()}`
+          : "/delivery/counts";
+
+        const [currentResponse, countsResponse] = await Promise.all([
+          api.get(`/delivery?${deliveryParams.toString()}`),
+          api.get(countsUrl),
+        ]);
 
         if (requestId !== refreshRequestIdRef.current) {
           return;
@@ -693,6 +1101,18 @@ export function Dashboard() {
         setPendingCount(nextPendingCount);
         setAssignedCount(nextAssignedCount);
         setWaitingReleaseCount(nextWaitingReleaseCount);
+        setAdminFinancialCounts({
+          totalEntregas: Number(countsResponse.data?.totalEntregas) || 0,
+          valorAdminPorEntrega:
+            Number(countsResponse.data?.valorAdminPorEntrega) || 0,
+          totalValorAdmin: Number(countsResponse.data?.totalValorAdmin) || 0,
+          cityId: countsResponse.data?.cityId ?? null,
+          cityName: countsResponse.data?.cityName ?? null,
+          createdIn:
+            countsResponse.data?.createdIn ?? adminCounterDateRange.start,
+          createdUntil:
+            countsResponse.data?.createdUntil ?? adminCounterDateRange.end,
+        });
       } catch (error: any) {
         if (requestId !== refreshRequestIdRef.current) {
           return;
@@ -705,8 +1125,93 @@ export function Dashboard() {
         }
       }
     },
-    [status],
+    [
+      adminCounterDateRange.end,
+      adminCounterDateRange.start,
+      currentCityId,
+      isCurrentUserSuperAdmin,
+      status,
+    ],
   );
+
+  const getReportsFromCurrentMotoboy = useCallback(
+    (rawReports: Report[]) => {
+      return rawReports.filter((report) => {
+        const assignedMotoboyId =
+          report.motoboyId || report.motoboy?.id || report.motoboy?._id;
+
+        return String(assignedMotoboyId) === String(currentUserId);
+      });
+    },
+    [currentUserId],
+  );
+
+  const refreshDeliveryPerformance = useCallback(async () => {
+    if (!isCurrentUserMotoboy || !currentUserId) {
+      setDeliveryPerformanceCounts({
+        today: { count: 0, total: 0 },
+        week: { count: 0, total: 0 },
+      });
+      setClosedWeekSettlement({ count: 0, total: 0 });
+      return;
+    }
+
+    try {
+      const itemsPerPage = 500;
+      const todayRange = getTodayYmdRange();
+      const weekRange = getRappidexWeekYmdRange();
+      const closedWeekRange = getLastClosedRappidexWeekYmdRange();
+
+      const [todayResponse, weekResponse, closedWeekResponse] =
+        await Promise.all([
+          api.get(
+            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${todayRange.start}&createdUntil=${todayRange.end}&itemsPerPage=${itemsPerPage}`,
+          ),
+          api.get(
+            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${weekRange.start}&createdUntil=${weekRange.end}&itemsPerPage=${itemsPerPage}`,
+          ),
+          api.get(
+            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${closedWeekRange.start}&createdUntil=${closedWeekRange.end}&itemsPerPage=${itemsPerPage}`,
+          ),
+        ]);
+
+      const todayReports = getReportsFromCurrentMotoboy(
+        Array.isArray(todayResponse.data?.data) ? todayResponse.data.data : [],
+      );
+
+      const weekReports = getReportsFromCurrentMotoboy(
+        Array.isArray(weekResponse.data?.data) ? weekResponse.data.data : [],
+      );
+
+      const closedWeekReports = getReportsFromCurrentMotoboy(
+        Array.isArray(closedWeekResponse.data?.data)
+          ? closedWeekResponse.data.data
+          : [],
+      );
+
+      setDeliveryPerformanceCounts({
+        today: {
+          count: todayReports.length,
+          total: calculateReportsMotoboyTotal(todayReports, cities),
+        },
+        week: {
+          count: weekReports.length,
+          total: calculateReportsMotoboyTotal(weekReports, cities),
+        },
+      });
+      setClosedWeekSettlement({
+        count: closedWeekReports.length,
+        total: calculateReportsMotoboyTotal(closedWeekReports, cities),
+      });
+    } catch (error) {
+      console.error("Erro ao carregar desempenho do motoboy:", error);
+    }
+  }, [
+    cities,
+    currentUserId,
+    getReportsFromCurrentMotoboy,
+    isCurrentUserMotoboy,
+  ]);
 
   const getCities = useCallback(async () => {
     try {
@@ -740,10 +1245,16 @@ export function Dashboard() {
       const currentUser = response.data?.data ?? response.data ?? {};
 
       setCurrentUserId(currentUser.id ?? "");
-      setCurrentCityId(currentUser.cityId ?? "");
+      setCurrentCityId(
+        (currentCity) => currentCity || currentUser.cityId || "",
+      );
 
-      const currentType = String(currentUser.type || permission || "").toLowerCase();
-      const currentPermission = String(currentUser.permission || "").toLowerCase();
+      const currentType = String(
+        currentUser.type || permission || "",
+      ).toLowerCase();
+      const currentPermission = String(
+        currentUser.permission || "",
+      ).toLowerCase();
 
       const isAdminOrSuperadmin =
         currentType === UserType.ADMIN ||
@@ -764,13 +1275,13 @@ export function Dashboard() {
       const hasIfoodIntegration =
         Boolean(
           currentUser.useIfoodIntegration ||
-            currentUser.ifoodEnabled ||
-            currentUser.establishment?.useIfoodIntegration ||
-            currentUser.establishment?.ifoodEnabled ||
-            currentUser.selectedEstablishment?.useIfoodIntegration ||
-            currentUser.selectedEstablishment?.ifoodEnabled ||
-            currentUser.company?.useIfoodIntegration ||
-            currentUser.company?.ifoodEnabled,
+          currentUser.ifoodEnabled ||
+          currentUser.establishment?.useIfoodIntegration ||
+          currentUser.establishment?.ifoodEnabled ||
+          currentUser.selectedEstablishment?.useIfoodIntegration ||
+          currentUser.selectedEstablishment?.ifoodEnabled ||
+          currentUser.company?.useIfoodIntegration ||
+          currentUser.company?.ifoodEnabled,
         ) &&
         (hasActiveIfoodMerchant(currentUser) ||
           hasActiveIfoodMerchant(currentUser.establishment) ||
@@ -784,12 +1295,11 @@ export function Dashboard() {
 
       setCanViewReleaseTab(nextCanViewReleaseTab);
       setCanManageReleaseOrder(nextCanManageReleaseOrder);
+      setIsCurrentUserSuperAdmin(currentType === UserType.SUPERADMIN);
     } catch (error) {
       console.error("Erro ao carregar usuário atual:", error);
     }
   }, [permission]);
-
-
 
   async function handleConfirmObservation() {
     if (!observationModalDeliveryId) return;
@@ -871,7 +1381,10 @@ export function Dashboard() {
       report.status === StatusDelivery.AWAITING_CODE
     ) {
       if (!report.destinationObservationConfirmed) {
-        openObservationModal(report.id, report.destinationObservation?.trim() || "");
+        openObservationModal(
+          report.id,
+          report.destinationObservation?.trim() || "",
+        );
         return;
       }
 
@@ -909,6 +1422,10 @@ export function Dashboard() {
 
       if (!updatedReport) {
         await Promise.all([refreshDashboard(false), getMotoboys()]);
+        if (newStatus === StatusDelivery.FINISHED) {
+          showDeliveryGain(report);
+          void refreshDeliveryPerformance();
+        }
         alert(`Solicitação avançada para o passo ${newStatus}`);
         return;
       }
@@ -924,14 +1441,19 @@ export function Dashboard() {
         return;
       }
 
-      const delta = getCountDelta(
-        report,
-        { ...report, ...updatedReport, status: updatedReport.status || newStatus },
-      );
+      const delta = getCountDelta(report, {
+        ...report,
+        ...updatedReport,
+        status: updatedReport.status || newStatus,
+      });
       setPendingCount((state) => Math.max(0, state + delta.pending));
       setAssignedCount((state) => Math.max(0, state + delta.assigned));
       updateReportInListLocally(updatedReport);
       void getMotoboys();
+      if (newStatus === StatusDelivery.FINISHED) {
+        showDeliveryGain({ ...report, ...updatedReport });
+        void refreshDeliveryPerformance();
+      }
       alert(`Solicitação avançada para o passo ${newStatus}`);
       setDeliveryCodeByReport((state) => {
         const nextState = { ...state };
@@ -1199,26 +1721,34 @@ export function Dashboard() {
     [],
   );
 
-  const handleDeliveryCodeChange = useCallback((reportId: string, value: string) => {
-    setDeliveryCodeByReport((state) => ({
-      ...state,
-      [reportId]: value,
-    }));
-  }, []);
+  const handleDeliveryCodeChange = useCallback(
+    (reportId: string, value: string) => {
+      setDeliveryCodeByReport((state) => ({
+        ...state,
+        [reportId]: value,
+      }));
+    },
+    [],
+  );
 
-  const getClientWhatsappMessage = useCallback((report: Report) => {
-    if (!report.establishmentCityId) {
-      return undefined;
-    }
+  const getClientWhatsappMessage = useCallback(
+    (report: Report) => {
+      if (!report.establishmentCityId) {
+        return undefined;
+      }
 
-    return clientWhatsappMessageByCityId.get(String(report.establishmentCityId));
-  }, [clientWhatsappMessageByCityId]);
+      return clientWhatsappMessageByCityId.get(
+        String(report.establishmentCityId),
+      );
+    },
+    [clientWhatsappMessageByCityId],
+  );
 
   useEffect(() => {
     void refreshDashboard(true).finally(() => {
       didFirstLoadRef.current = true;
     });
-}, [refreshDashboard]);
+  }, [refreshDashboard]);
 
   useEffect(() => {
     void getCities();
@@ -1247,6 +1777,10 @@ export function Dashboard() {
   }, [getMyself]);
 
   useEffect(() => {
+    void refreshDeliveryPerformance();
+  }, [refreshDeliveryPerformance]);
+
+  useEffect(() => {
     if (!canViewReleaseTab && status === StatusDelivery.AWAITING_RELEASE) {
       setStatus(StatusDelivery.PENDING);
     }
@@ -1265,7 +1799,11 @@ export function Dashboard() {
       }
 
       reloadTimeoutRef.current = window.setTimeout(() => {
-        void Promise.all([refreshDashboard(false), getMotoboys()]);
+        void Promise.all([
+          refreshDashboard(false),
+          getMotoboys(),
+          refreshDeliveryPerformance(),
+        ]);
       }, 250);
     };
 
@@ -1287,7 +1825,12 @@ export function Dashboard() {
       socket.off("delivery:deleted", reloadDeliveries);
       socket.disconnect();
     };
-  }, [currentCityId, getMotoboys, refreshDashboard]);
+  }, [
+    currentCityId,
+    getMotoboys,
+    refreshDashboard,
+    refreshDeliveryPerformance,
+  ]);
 
   const confirmationReport = confirmAction?.report || null;
   const isCancelingDelivery = Boolean(
@@ -1309,6 +1852,16 @@ export function Dashboard() {
 
   return (
     <Container>
+      {deliveryGain && (
+        <DeliveryGainToast
+          ref={earningToastRef}
+          key={deliveryGain.id}
+          role="status"
+          aria-live="polite"
+        >
+          {formatMotoboyDeliveryGain(deliveryGain.value)}
+        </DeliveryGainToast>
+      )}
 
       <Modal
         open={isCancelConfirmVisible}
@@ -1412,8 +1965,15 @@ export function Dashboard() {
       <BaseModal
         isVisible={Boolean(observationModalDeliveryId)}
         handleClose={closeObservationModal}
-        observation={observationModalDeliveryId ? (observationTextByDeliveryId[observationModalDeliveryId] || "") : ""}
-        isSaving={Boolean(observationModalDeliveryId && observationSavingId === observationModalDeliveryId)}
+        observation={
+          observationModalDeliveryId
+            ? observationTextByDeliveryId[observationModalDeliveryId] || ""
+            : ""
+        }
+        isSaving={Boolean(
+          observationModalDeliveryId &&
+          observationSavingId === observationModalDeliveryId,
+        )}
         onObservationChange={(text) => {
           if (!observationModalDeliveryId) return;
           setObservationTextByDeliveryId((state) => ({
@@ -1425,6 +1985,118 @@ export function Dashboard() {
           void handleConfirmObservation();
         }}
       />
+
+      {isAdminDashboardUser && (
+        <AdminFinancialCard>
+          <Money size={24} weight="duotone" aria-hidden="true" />
+          <PerformanceMetrics>
+            <PerformanceMetric>
+              <span>Entregas da cidade</span>
+              <strong>{adminFinancialCounts.totalEntregas}</strong>
+            </PerformanceMetric>
+            <PerformanceMetric>
+              <span>Valor por entrega</span>
+              <PerformanceValue>{formattedAdminDeliveryFee}</PerformanceValue>
+            </PerformanceMetric>
+            <PerformanceMetric>
+              <span>Total a receber</span>
+              <PerformanceValue>{formattedAdminTotal}</PerformanceValue>
+            </PerformanceMetric>
+            <PerformanceMetric>
+              <span>Cidade</span>
+              <strong>
+                {adminFinancialCounts.cityName || "Não selecionada"}
+              </strong>
+            </PerformanceMetric>
+          </PerformanceMetrics>
+          <AdminFilters>
+            <label>
+              Início
+              <AdminDateInput
+                type="date"
+                value={adminCounterDateRange.start}
+                onChange={(event) =>
+                  setAdminCounterDateRange((range) => ({
+                    ...range,
+                    start: event.target.value,
+                  }))
+                }
+                aria-label="Data inicial do contador administrativo"
+              />
+            </label>
+            <label>
+              Fim
+              <AdminDateInput
+                type="date"
+                value={adminCounterDateRange.end}
+                onChange={(event) =>
+                  setAdminCounterDateRange((range) => ({
+                    ...range,
+                    end: event.target.value,
+                  }))
+                }
+                aria-label="Data final do contador administrativo"
+              />
+            </label>
+            {isCurrentUserSuperAdmin && (
+              <AdminCitySelect
+                value={currentCityId}
+                onChange={(event) => setCurrentCityId(event.target.value)}
+                aria-label="Selecionar cidade do contador administrativo"
+              >
+                <option value="">Selecione a cidade</option>
+                {cities.map((city) => (
+                  <option key={city.id} value={city.id}>
+                    {city.name}
+                  </option>
+                ))}
+              </AdminCitySelect>
+            )}
+          </AdminFilters>
+        </AdminFinancialCard>
+      )}
+
+      {shouldShowClosedWeekSettlement && (
+        <ClosedWeekSettlementCard aria-label="Valor a receber da semana fechada">
+          <Money size={24} weight="duotone" aria-hidden="true" />
+          <SettlementDetails>
+            <span>Valor a receber</span>
+            <PerformanceValue>
+              {formattedClosedWeekSettlementValue}
+            </PerformanceValue>
+            <SettlementMessage>{closedWeekSettlementMessage}</SettlementMessage>
+          </SettlementDetails>
+        </ClosedWeekSettlementCard>
+      )}
+
+      {isCurrentUserMotoboy && (
+        <PerformanceCard
+          type="button"
+          onClick={() =>
+            setPerformancePeriod((currentPeriod) =>
+              currentPeriod === "week" ? "today" : "week",
+            )
+          }
+          aria-label={`Mostrar desempenho ${performancePeriod === "week" ? "de hoje" : "da semana"}`}
+        >
+          <ChartLineUp size={24} weight="duotone" aria-hidden="true" />
+          <PerformanceMetrics>
+            <PerformanceMetric>
+              <span>Entregas {performancePeriodLabel}</span>
+              <strong>{selectedPerformance.count}</strong>
+            </PerformanceMetric>
+            <PerformanceMetric>
+              <span>Valor {performancePeriodLabel}</span>
+              <PerformanceValue>{formattedPerformanceValue}</PerformanceValue>
+            </PerformanceMetric>
+          </PerformanceMetrics>
+          <PerformanceHint>
+            {performancePeriod === "week"
+              ? "Semana de terça a segunda • Clique para ver hoje"
+              : "Clique para ver a semana"}
+          </PerformanceHint>
+        </PerformanceCard>
+      )}
 
       <ContainerButtons>
         {canViewReleaseTab && (
@@ -1491,7 +2163,9 @@ export function Dashboard() {
                 getClientWhatsappMessage={getClientWhatsappMessage}
                 deliveryCode={deliveryCodeByReport[report.id] || ""}
                 previewObservation={report.destinationObservation?.trim() || ""}
-                shouldShowObservationPreview={Boolean(report.destinationObservationConfirmed)}
+                shouldShowObservationPreview={Boolean(
+                  report.destinationObservationConfirmed,
+                )}
                 canManageReleaseOrder={canManageReleaseOrder}
               />
             ))}

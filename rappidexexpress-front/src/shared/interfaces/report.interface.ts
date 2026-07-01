@@ -21,9 +21,12 @@ export interface Report {
     establishmentLocation: string;
     establishmentPix: string;
     establishmentCityId?: string;
+    cityId?: string;
     id: string;
     isActive: boolean;
     motoboyId: string;
+    motoboy?: { id?: string; _id?: string };
+    establishment?: { cityId?: string };
     motoboyName: string;
     motoboyPhone: string;
     payment: string;
@@ -36,6 +39,7 @@ export interface Report {
     ifoodDisplayId?: string;
     ifoodMerchantId?: string;
     ifoodMerchantName?: string;
+    ifoodMerchantLocation?: string;
     soda: string;
     onCoursedAt: string;
     arrivedAtStoreAt?: string;
@@ -43,6 +47,9 @@ export interface Report {
     ifoodStatus?: string;
     externalStatus?: string;
     logisticsStatus?: string;
-    finishedAt: string;
+    finishedAt?: string;
+    completedAt?: string;
+    finalizedAt?: string;
+    updatedAt?: string;
     isIfoodOrder?: boolean;
 }
