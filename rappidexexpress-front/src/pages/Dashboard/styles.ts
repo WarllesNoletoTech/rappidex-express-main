@@ -792,12 +792,14 @@ export const SettlementMessage = styled.span`
 `;
 
 export const PerformanceMetrics = styled.span`
-  flex: 1;
+  flex: 1 1 auto;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem 1rem;
   min-width: 0;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 
   @media (max-width: 480px) {
     grid-template-columns: 1fr;
@@ -814,10 +816,16 @@ export const PerformanceMetric = styled.span`
   font-size: 0.82rem;
   font-weight: 700;
 
+  span,
+  strong {
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+
   strong {
     color: ${(props) => props.theme["gray-100"]};
     font-size: 1.35rem;
-    overflow-wrap: anywhere;
   }
 `;
 
@@ -837,13 +845,15 @@ export const PerformanceHint = styled.span`
 `;
 
 export const AdminFinancialCard = styled.div`
+  position: relative;
   width: min(100%, 1200px);
   max-width: 100%;
   box-sizing: border-box;
   margin: 0.5rem 0 1rem;
   padding: 1rem 1.15rem;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 1rem;
   border: 1px solid ${(props) => props.theme["brand-yellow"]};
   border-radius: ${(props) => props.theme["radius-lg"]};
@@ -854,39 +864,31 @@ export const AdminFinancialCard = styled.div`
   );
   box-shadow: ${(props) => props.theme["shadow-soft"]};
   color: ${(props) => props.theme["gray-100"]};
-  overflow-x: hidden;
+  overflow: hidden;
 
   > svg {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
     flex-shrink: 0;
     color: ${(props) => props.theme["brand-yellow"]};
+    opacity: 0.9;
+    pointer-events: none;
   }
 
   ${PerformanceMetrics} {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    padding-right: 2.25rem;
   }
 
   @media (max-width: 768px) {
     width: 100%;
-    position: relative;
-    flex-direction: column;
-    align-items: flex-start;
     gap: 1rem;
     padding: 1rem;
-    overflow: hidden;
 
     > svg {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
       width: 1.25rem;
       height: 1.25rem;
-      opacity: 0.85;
-    }
-
-    ${PerformanceMetrics} {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      padding-right: 2rem;
-      box-sizing: border-box;
     }
   }
 
@@ -914,10 +916,10 @@ export const AdminFinancialCard = styled.div`
 export const AdminFilters = styled.div`
   width: 100%;
   flex-shrink: 1;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   align-items: end;
   gap: 0.75rem;
-  flex-wrap: wrap;
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
@@ -927,6 +929,8 @@ export const AdminFilters = styled.div`
     flex-direction: column;
     gap: 0.25rem;
     min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
     color: ${(props) => props.theme["gray-300"]};
     font-size: 0.75rem;
     font-weight: 700;
@@ -934,7 +938,7 @@ export const AdminFilters = styled.div`
 
   @media (max-width: 768px) {
     width: 100%;
-    flex-direction: column;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     align-items: stretch;
     gap: 0.7rem;
 
@@ -947,6 +951,7 @@ export const AdminFilters = styled.div`
   }
 
   @media (max-width: 480px) {
+    grid-template-columns: 1fr;
     gap: 0.55rem;
 
     label {
@@ -956,7 +961,7 @@ export const AdminFilters = styled.div`
 `;
 
 const AdminFilterControl = styled.input`
-  min-width: 10rem;
+  min-width: 0;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -987,8 +992,8 @@ const AdminFilterControl = styled.input`
 export const AdminDateInput = styled(AdminFilterControl)``;
 
 export const AdminCitySelect = styled.select`
-  flex-shrink: 0;
-  min-width: 13rem;
+  min-width: 0;
+  width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   border: 1px solid rgba(255, 255, 255, 0.14);

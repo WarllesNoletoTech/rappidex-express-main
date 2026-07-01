@@ -33,7 +33,8 @@ export const PageHeader = styled.div`
       color: ${(props) => props.theme["gray-100"]};
       font-size: 1.5rem;
       line-height: 1.2;
-      overflow-wrap: anywhere;
+      word-break: normal;
+      overflow-wrap: break-word;
     }
   }
 `;
@@ -99,7 +100,6 @@ export const DataContainer = styled.div`
     max-width: 100%;
     min-width: 0;
     box-sizing: border-box;
-    box-sizing: border-box;
     padding: 0 0.75rem;
   }
 
@@ -137,8 +137,11 @@ export const Filter = styled.div`
   align-items: center;
 
   select {
+    flex: 1 1 12rem;
     min-height: 2.75rem;
-    min-width: 12rem;
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: ${(props) => props.theme["radius-md"]};
     background-color: ${(props) => props.theme["gray-800"]};
@@ -203,7 +206,8 @@ export const ReportsContainer = styled.div`
 
   h3 {
     color: ${(props) => props.theme["gray-100"]};
-    overflow-wrap: anywhere;
+    word-break: normal;
+    overflow-wrap: break-word;
   }
 
   @media (max-width: 768px) {
@@ -262,7 +266,8 @@ export const ShopkeeperInfo = styled.div`
   min-width: 0;
 
   p {
-    overflow-wrap: anywhere;
+    word-break: normal;
+    overflow-wrap: break-word;
   }
 `;
 
@@ -277,7 +282,8 @@ export const ContainerOrder = styled.div`
 
   p {
     line-height: 1.45;
-    overflow-wrap: anywhere;
+    word-break: normal;
+    overflow-wrap: break-word;
   }
 `;
 
@@ -289,7 +295,8 @@ export const ContainerInfo = styled.div`
 
   p {
     line-height: 1.45;
-    overflow-wrap: anywhere;
+    word-break: normal;
+    overflow-wrap: break-word;
   }
 `;
 
@@ -408,7 +415,8 @@ export const SettlementFeedback = styled.div<SettlementFeedbackProps>`
       : "rgba(239, 68, 68, 0.14)"};
   color: ${(props) => props.theme["gray-100"]};
   line-height: 1.45;
-  overflow-wrap: anywhere;
+  word-break: normal;
+  overflow-wrap: break-word;
 `;
 
 export const CheckboxLabel = styled.label`
