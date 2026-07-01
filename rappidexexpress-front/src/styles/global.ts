@@ -7,6 +7,14 @@ export const GlobalStyle = createGlobalStyle`
     box-sizing: border-box;
   }
 
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
   html {
     min-width: 0;
     background: ${(props) => props.theme['gray-950']};
@@ -31,7 +39,9 @@ export const GlobalStyle = createGlobalStyle`
   }
 
   button, select, input, textarea {
+    width: auto;
     max-width: 100%;
+    box-sizing: border-box;
   }
 
   button {

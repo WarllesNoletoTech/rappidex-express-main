@@ -4,6 +4,9 @@ import { StatusDelivery } from "../../shared/constants/enums.constants";
 export const Container = styled.main`
   flex: 1;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -758,6 +761,7 @@ export const ClosedWeekSettlementCard = styled.div`
   );
   box-shadow: ${(props) => props.theme["shadow-soft"]};
   color: ${(props) => props.theme["gray-100"]};
+  overflow-x: hidden;
 
   > svg {
     flex-shrink: 0;
@@ -834,7 +838,7 @@ export const PerformanceHint = styled.span`
 
 export const AdminFinancialCard = styled.div`
   width: min(100%, 1200px);
-  max-width: 1200px;
+  max-width: 100%;
   box-sizing: border-box;
   margin: 0.5rem 0 1rem;
   padding: 1rem 1.15rem;
@@ -850,6 +854,7 @@ export const AdminFinancialCard = styled.div`
   );
   box-shadow: ${(props) => props.theme["shadow-soft"]};
   color: ${(props) => props.theme["gray-100"]};
+  overflow-x: hidden;
 
   > svg {
     flex-shrink: 0;
@@ -861,12 +866,13 @@ export const AdminFinancialCard = styled.div`
   }
 
   @media (max-width: 768px) {
+    width: 100%;
     position: relative;
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
     padding: 1rem;
-    overflow: visible;
+    overflow: hidden;
 
     > svg {
       position: absolute;
@@ -906,7 +912,8 @@ export const AdminFinancialCard = styled.div`
 `;
 
 export const AdminFilters = styled.div`
-  flex-shrink: 0;
+  width: 100%;
+  flex-shrink: 1;
   display: flex;
   align-items: end;
   gap: 0.75rem;
@@ -933,6 +940,9 @@ export const AdminFilters = styled.div`
 
     label {
       width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
     }
   }
 
@@ -948,6 +958,7 @@ export const AdminFilters = styled.div`
 const AdminFilterControl = styled.input`
   min-width: 10rem;
   width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: ${(props) => props.theme["radius-sm"]};
@@ -965,6 +976,9 @@ const AdminFilterControl = styled.input`
   }
 
   @media (max-width: 480px) {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
     padding: 0.75rem 0.8rem;
     font-size: 0.9rem;
   }
@@ -993,6 +1007,9 @@ export const AdminCitySelect = styled.select`
   }
 
   @media (max-width: 480px) {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
     padding: 0.75rem 0.8rem;
     font-size: 0.9rem;
   }

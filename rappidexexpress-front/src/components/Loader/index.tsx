@@ -4,9 +4,9 @@ import { SpanLoader } from "./styles";
 export enum Colors {
     'gray' = 'gray-100',
     'black' = 'gray-900',
-    'green' = 'green-300',
+    'green' = 'brand-yellow',
     'red' = 'red-500',
-    'yellow' = 'yellow-500'
+    'yellow' = 'brand-yellow'
 }
 
 export interface LoaderProps {
