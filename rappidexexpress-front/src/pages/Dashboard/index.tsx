@@ -319,6 +319,11 @@ const DeliveryCard = memo(function DeliveryCard({
     (report as any).ifoodDisplayId ||
     (report as any).ifoodOrderId ||
     null;
+  const rawOrderLocator = String((report as any).orderLocator || "").trim();
+  const orderLocator =
+    rawOrderLocator && rawOrderLocator !== ifoodOrderNumber
+      ? rawOrderLocator
+      : null;
   const ifoodClientLocationLink =
     report.addressMapsUrl ||
     getIfoodClientLocationLink(report.observation, report.clientLocation);
@@ -456,6 +461,11 @@ const DeliveryCard = memo(function DeliveryCard({
         <SectionTitle>Detalhes do pedido</SectionTitle>
 
         <InfoSection>
+          <InfoRow>
+            <InfoLabel>Localizador</InfoLabel>
+            <InfoValue>{orderLocator || "Não informado"}</InfoValue>
+          </InfoRow>
+
           {isIfoodOrder && (
             <>
               <InfoRow>

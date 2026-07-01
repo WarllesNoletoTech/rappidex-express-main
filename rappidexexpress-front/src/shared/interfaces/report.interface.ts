@@ -37,6 +37,7 @@ export interface Report {
     destinationObservationConfirmed?: boolean;
     ifoodOrderId?: string;
     ifoodDisplayId?: string;
+    orderLocator?: string;
     ifoodMerchantId?: string;
     ifoodMerchantName?: string;
     ifoodMerchantLocation?: string;

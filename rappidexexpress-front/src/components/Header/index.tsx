@@ -154,7 +154,7 @@ export function Header() {
                 {canAccessCities && (
                   <MobileMenuLink to="/cidades" onClick={closeMobileMenu}>
                     <MapPin size={21} />
-                    <span>Localização</span>
+                    <span>Cidades</span>
                   </MobileMenuLink>
                 )}
                 {canCreateDelivery && (
