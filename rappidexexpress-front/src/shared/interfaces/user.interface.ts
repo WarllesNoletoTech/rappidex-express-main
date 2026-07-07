@@ -20,6 +20,7 @@ export interface User {
   name: string;
   permission: string;
   phone: string;
+  managerWhatsapp?: string;
   profileImage: string;
   type: string;
   user: string;
