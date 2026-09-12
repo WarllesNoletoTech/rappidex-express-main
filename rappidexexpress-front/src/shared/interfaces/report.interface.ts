@@ -53,4 +53,25 @@ export interface Report {
     finalizedAt?: string;
     updatedAt?: string;
     isIfoodOrder?: boolean;
+    source?: string;
+    menuFlowOrderId?: string;
+    menuFlowOrderNumber?: string;
+    menuFlowCompanyId?: string;
+    menuFlowRestaurantName?: string;
+    menuFlowSubtotalCents?: number;
+    menuFlowDeliveryFeeCents?: number;
+    menuFlowServiceFeeCents?: number;
+    menuFlowDiscountCents?: number;
+    menuFlowTotalCents?: number;
+    menuFlowPaymentMethod?: string;
+    menuFlowNeedsChange?: boolean;
+    menuFlowChangeForCents?: number;
+    menuFlowExpectedChangeCents?: number;
+    menuFlowItems?: Array<{
+        productName: string;
+        quantity: number;
+        unitPriceCents: number;
+        observation?: string;
+        addons?: Array<{ name: string; groupName?: string; priceCents: number }>;
+    }>;
 }

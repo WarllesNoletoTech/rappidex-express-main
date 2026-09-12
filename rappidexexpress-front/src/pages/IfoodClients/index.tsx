@@ -57,6 +57,7 @@ export function IfoodClients() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [savingUser, setSavingUser] = useState('');
+  const [savingMenuFlowUser, setSavingMenuFlowUser] = useState('');
   const [shopkeepers, setShopkeepers] = useState<User[]>([]);
   const [creditAmountByUser, setCreditAmountByUser] = useState<Record<string, number>>({});
   const [historyByUser, setHistoryByUser] = useState<Record<string, any[]>>({});
@@ -226,6 +227,36 @@ export function IfoodClients() {
       alert(error?.response?.data?.message || 'Erro ao salvar configuração iFood.');
     } finally {
       setSavingUser('');
+    }
+  }
+
+  async function handleSaveMenuFlow(shopkeeper: User) {
+    if (savingMenuFlowUser) {
+      return;
+    }
+
+    const companyId = String(shopkeeper.menuFlowCompanyId || '').trim();
+    if (shopkeeper.menuFlowEnabled && !companyId) {
+      alert('Informe o ID da empresa Menu Flow para ativar a integração.');
+      return;
+    }
+
+    setSavingMenuFlowUser(shopkeeper.id);
+    try {
+      const response = await api.put(`/user/${shopkeeper.id}/menu-flow-integration`, {
+        menuFlowEnabled: Boolean(shopkeeper.menuFlowEnabled),
+        menuFlowCompanyId: companyId,
+      });
+      const updated = response.data?.data ?? response.data ?? {};
+      updateLocalUser(shopkeeper.id, {
+        menuFlowEnabled: Boolean(updated.menuFlowEnabled ?? shopkeeper.menuFlowEnabled),
+        menuFlowCompanyId: String(updated.menuFlowCompanyId ?? companyId),
+      });
+      alert('Integração Menu Flow salva com sucesso.');
+    } catch (error: any) {
+      alert(error?.response?.data?.message || 'Erro ao salvar integração Menu Flow.');
+    } finally {
+      setSavingMenuFlowUser('');
     }
   }
 
@@ -569,6 +600,60 @@ export function IfoodClients() {
                   'Salvar'
                 )}
                 </SaveButton>
+
+                <StoreSection>
+                  <StoreSectionHeader>
+                    <div>
+                      <MerchantIdLabel>Integração Menu Flow</MerchantIdLabel>
+                      <Subtitle>
+                        Vincule esta empresa ao ID exibido em Menu Flow → Administração → Integrações. Esta configuração é independente do iFood.
+                      </Subtitle>
+                    </div>
+                  </StoreSectionHeader>
+
+                  <ToggleGroup>
+                    <Checkbox>
+                      <input
+                        checked={Boolean(shopkeeper.menuFlowEnabled)}
+                        onChange={(event) =>
+                          updateLocalUser(shopkeeper.id, {
+                            menuFlowEnabled: event.target.checked,
+                          })
+                        }
+                        type="checkbox"
+                      />
+                      Usar integração Menu Flow
+                    </Checkbox>
+                  </ToggleGroup>
+
+                  <FieldGroup>
+                    <MerchantIdLabel htmlFor={`menu-flow-${shopkeeper.id}`}>
+                      ID da empresa no Menu Flow
+                    </MerchantIdLabel>
+                    <Input
+                      id={`menu-flow-${shopkeeper.id}`}
+                      onChange={(event) =>
+                        updateLocalUser(shopkeeper.id, {
+                          menuFlowCompanyId: event.target.value,
+                        })
+                      }
+                      placeholder="Cole o ID da empresa exibido no Menu Flow"
+                      value={shopkeeper.menuFlowCompanyId || ''}
+                    />
+                  </FieldGroup>
+
+                  <SaveButton
+                    disabled={savingMenuFlowUser === shopkeeper.id}
+                    onClick={() => handleSaveMenuFlow(shopkeeper)}
+                    type="button"
+                  >
+                    {savingMenuFlowUser === shopkeeper.id ? (
+                      <Loader size={20} biggestColor="gray" smallestColor="gray" />
+                    ) : (
+                      'Salvar integração Menu Flow'
+                    )}
+                  </SaveButton>
+                </StoreSection>
               </CardContent>
               
               {Array.isArray(historyByUser[shopkeeper.id]) &&

@@ -31,4 +31,6 @@ export interface User {
   ifoodOrdersReleased?: number;
   ifoodOrdersUsed?: number;
   ifoodOrdersAvailable?: number;
+  menuFlowEnabled?: boolean;
+  menuFlowCompanyId?: string;
 }
