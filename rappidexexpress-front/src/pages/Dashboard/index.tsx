@@ -213,6 +213,21 @@ function canCancelDelivery(report: Report, permission: string | null) {
   return isAdminOrSuperadminUser(permission) || !isDeliveryAssigned(report);
 }
 
+const menuFlowStatusLabels: Record<string, string> = {
+  [StatusDelivery.AWAITING_RELEASE]: "Aguardando liberação",
+  [StatusDelivery.PENDING]: "Aguardando motoboy",
+  [StatusDelivery.ONCOURSE]: "Motoboy indo até o estabelecimento",
+  [StatusDelivery.ARRIVED_AT_STORE]: "Motoboy chegou ao estabelecimento",
+  [StatusDelivery.COLLECTED]: "Motoboy a caminho do cliente",
+  [StatusDelivery.ARRIVED_AT_DESTINATION]: "Motoboy chegou ao destino",
+  [StatusDelivery.AWAITING_CODE]: "Aguardando código de entrega",
+  [StatusDelivery.FINISHED]: "Entrega concluída",
+  [StatusDelivery.CANCELED]: "Entrega cancelada",
+};
+
+const getMenuFlowStatusLabel = (status?: string) =>
+  status ? menuFlowStatusLabels[status] || status : "Não informado";
+
 function playMoneySound() {
   try {
     const AudioContextClass =
@@ -348,7 +363,9 @@ const DeliveryCard = memo(function DeliveryCard({
   const ifoodMerchantId = String(report.ifoodMerchantId || "").trim();
   const nomeLojaCard = isIfoodOrder
     ? ifoodMerchantName || ifoodMerchantId || report.establishmentName
-    : report.establishmentName;
+    : isMenuFlowOrder
+      ? report.menuFlowRestaurantName || report.establishmentName
+      : report.establishmentName;
   const localizacaoLojaCard = isIfoodOrder
     ? ifoodMerchantLocation
     : report.establishmentLocation;
@@ -385,17 +402,25 @@ const DeliveryCard = memo(function DeliveryCard({
         </ContainerImagem>
 
         <ShopkeeperInfo>
-          {isIfoodOrder && <IfoodStoreBadge>Loja iFood</IfoodStoreBadge>}
-          {isMenuFlowOrder && <IfoodStoreBadge>MENU FLOW</IfoodStoreBadge>}
-          {isMenuFlowOrder && (
-            <p>
-              Pedido do Menu Flow{' '}
-              {menuFlowOrderNumber
-                ? `#${menuFlowOrderNumber.replace(/^#/, '')}`
-                : ''}
-            </p>
+          {isMenuFlowOrder ? (
+            <>
+              <p>{nomeLojaCard}</p>
+              <IfoodStoreBadge>MENU FLOW</IfoodStoreBadge>
+              <p>
+                Pedido{' '}
+                {menuFlowOrderNumber
+                  ? `#${menuFlowOrderNumber.replace(/^#/, '')}`
+                  : report.menuFlowOrderId
+                    ? `#${report.menuFlowOrderId}`
+                    : ''}
+              </p>
+            </>
+          ) : (
+            <>
+              {isIfoodOrder && <IfoodStoreBadge>Loja iFood</IfoodStoreBadge>}
+              <p>{nomeLojaCard}</p>
+            </>
           )}
-          <p>{nomeLojaCard}</p>
 
           <Link
             href={getLinkToWhatsapp(
@@ -431,19 +456,25 @@ const DeliveryCard = memo(function DeliveryCard({
               <InfoLabel>Status</InfoLabel>
               <InfoValue>
                 <ContainerStatus>
-                  <Status type={report.status}>{report.status}</Status>
+                  <Status type={report.status}>
+                    {isMenuFlowOrder
+                      ? getMenuFlowStatusLabel(report.status)
+                      : report.status}
+                  </Status>
                 </ContainerStatus>
               </InfoValue>
             </InfoRow>
 
-            <InfoRow>
-              <InfoLabel>Andamento</InfoLabel>
-              <InfoValue>
-                {permission === UserType.SHOPKEEPER
-                  ? getEstablishmentVisualStatus(report)
-                  : getClientVisualStatus(report)}
-              </InfoValue>
-            </InfoRow>
+            {!isMenuFlowOrder && (
+              <InfoRow>
+                <InfoLabel>Andamento</InfoLabel>
+                <InfoValue>
+                  {permission === UserType.SHOPKEEPER
+                    ? getEstablishmentVisualStatus(report)
+                    : getClientVisualStatus(report)}
+                </InfoValue>
+              </InfoRow>
+            )}
 
             <InfoRow>
               <InfoLabel>Pagamento</InfoLabel>
@@ -451,22 +482,34 @@ const DeliveryCard = memo(function DeliveryCard({
             </InfoRow>
 
             <InfoRow>
-              <InfoLabel>Valor</InfoLabel>
-              <InfoValue>R$ {report.value}</InfoValue>
-            </InfoRow>
-
-            <InfoRow>
-              <InfoLabel>Pix</InfoLabel>
+              <InfoLabel>{isMenuFlowOrder ? "Total" : "Valor"}</InfoLabel>
               <InfoValue>
-                {report.establishmentPix || "Não informado"}
+                {isMenuFlowOrder
+                  ? typeof report.menuFlowTotalCents === "number"
+                    ? formatMenuFlowMoney(report.menuFlowTotalCents)
+                    : `R$ ${report.value}`
+                  : `R$ ${report.value}`}
               </InfoValue>
             </InfoRow>
+
+            {!isMenuFlowOrder && (
+              <InfoRow>
+                <InfoLabel>Pix</InfoLabel>
+                <InfoValue>
+                  {report.establishmentPix || "Não informado"}
+                </InfoValue>
+              </InfoRow>
+            )}
 
             <InfoRow>
               <InfoLabel>Refrigerante</InfoLabel>
               {isIfoodOrder ? (
                 <IfoodSodaWarning>
                   Confirmar refrigerante com o estabelecimento
+                </IfoodSodaWarning>
+              ) : isMenuFlowOrder ? (
+                <IfoodSodaWarning>
+                  Conferir bebida com o estabelecimento
                 </IfoodSodaWarning>
               ) : (
                 <InfoValue>{report.soda || "Não informado"}</InfoValue>
@@ -480,10 +523,12 @@ const DeliveryCard = memo(function DeliveryCard({
         <SectionTitle>Detalhes do pedido</SectionTitle>
 
         <InfoSection>
-          <InfoRow>
-            <InfoLabel>Localizador</InfoLabel>
-            <InfoValue>{orderLocator || "Não informado"}</InfoValue>
-          </InfoRow>
+          {!isMenuFlowOrder && (
+            <InfoRow>
+              <InfoLabel>Localizador</InfoLabel>
+              <InfoValue>{orderLocator || "Não informado"}</InfoValue>
+            </InfoRow>
+          )}
 
           {isIfoodOrder && (
             <>
@@ -502,26 +547,10 @@ const DeliveryCard = memo(function DeliveryCard({
           )}
 
           {isMenuFlowOrder && (
-            <>
-              <InfoRow>
-                <InfoLabel>Origem</InfoLabel>
-                <InfoValue>Pedido do Menu Flow</InfoValue>
-              </InfoRow>
-              <InfoRow>
-                <InfoLabel>Pedido Menu Flow</InfoLabel>
-                <InfoValue>
-                  {menuFlowOrderNumber
-                    ? `#${menuFlowOrderNumber.replace(/^#/, "")}`
-                    : report.menuFlowOrderId || "Não informado"}
-                </InfoValue>
-              </InfoRow>
-              {report.menuFlowRestaurantName && (
-                <InfoRow>
-                  <InfoLabel>Loja Menu Flow</InfoLabel>
-                  <InfoValue>{report.menuFlowRestaurantName}</InfoValue>
-                </InfoRow>
-              )}
-            </>
+            <InfoRow>
+              <InfoLabel>Origem</InfoLabel>
+              <InfoValue>Menu Flow</InfoValue>
+            </InfoRow>
           )}
 
           <InfoRow>
@@ -591,51 +620,10 @@ const DeliveryCard = memo(function DeliveryCard({
           )}
         </InfoSection>
 
-        {isMenuFlowOrder && (
-          <InfoSection>
-            <InfoRow>
-              <InfoLabel>Origem da entrega</InfoLabel>
-              <InfoValue>Menu Flow</InfoValue>
-            </InfoRow>
-            <InfoRow>
-              <InfoLabel>Valor dos produtos</InfoLabel>
-              <InfoValue>{formatMenuFlowMoney(report.menuFlowSubtotalCents)}</InfoValue>
-            </InfoRow>
-            <InfoRow>
-              <InfoLabel>Taxa de entrega</InfoLabel>
-              <InfoValue>{formatMenuFlowMoney(report.menuFlowDeliveryFeeCents)}</InfoValue>
-            </InfoRow>
-            {Boolean(report.menuFlowServiceFeeCents) && (
-              <InfoRow>
-                <InfoLabel>Taxa Menu Flow</InfoLabel>
-                <InfoValue>{formatMenuFlowMoney(report.menuFlowServiceFeeCents)}</InfoValue>
-              </InfoRow>
-            )}
-            {Boolean(report.menuFlowDiscountCents) && (
-              <InfoRow>
-                <InfoLabel>Desconto</InfoLabel>
-                <InfoValue>{formatMenuFlowMoney(report.menuFlowDiscountCents)}</InfoValue>
-              </InfoRow>
-            )}
-            <InfoRow>
-              <InfoLabel>Total do pedido</InfoLabel>
-              <InfoValue>{formatMenuFlowMoney(report.menuFlowTotalCents)}</InfoValue>
-            </InfoRow>
-            <InfoRow>
-              <InfoLabel>Pagamento</InfoLabel>
-              <InfoValue>{report.menuFlowPaymentMethod || report.payment || "Não informado"}</InfoValue>
-            </InfoRow>
-            {report.menuFlowPaymentMethod === "CASH" && (
-              <InfoRow>
-                <InfoLabel>Troco</InfoLabel>
-                <InfoValue>
-                  {report.menuFlowNeedsChange && report.menuFlowChangeForCents
-                    ? `Troco para ${formatMenuFlowMoney(report.menuFlowChangeForCents)}`
-                    : "Não precisa"}
-                </InfoValue>
-              </InfoRow>
-            )}
-            {Array.isArray(report.menuFlowItems) && report.menuFlowItems.length > 0 && (
+        {isMenuFlowOrder &&
+          Array.isArray(report.menuFlowItems) &&
+          report.menuFlowItems.length > 0 && (
+            <InfoSection>
               <InfoRow>
                 <InfoLabel>Itens</InfoLabel>
                 <InfoValue>
@@ -646,23 +634,26 @@ const DeliveryCard = memo(function DeliveryCard({
                       .join(", ");
                     return (
                       <div key={`${item.productName}-${index}`}>
-                        {item.quantity}x {item.productName} — {formatMenuFlowMoney(
-                          item.quantity *
-                            (item.unitPriceCents +
-                              (item.addons || []).reduce(
-                                (sum, addon) => sum + Number(addon.priceCents || 0),
-                                0,
-                              )),
-                        )}
+                        <strong>{item.quantity}x {item.productName}</strong>
                         {addons ? ` • ${addons}` : ""}
+                        {item.observation ? ` • Obs.: ${item.observation}` : ""}
                       </div>
                     );
                   })}
                 </InfoValue>
               </InfoRow>
-            )}
-          </InfoSection>
-        )}
+              {report.menuFlowPaymentMethod === "CASH" && (
+                <InfoRow>
+                  <InfoLabel>Troco</InfoLabel>
+                  <InfoValue>
+                    {report.menuFlowNeedsChange && report.menuFlowChangeForCents
+                      ? `Troco para ${formatMenuFlowMoney(report.menuFlowChangeForCents)}`
+                      : "Não precisa"}
+                  </InfoValue>
+                </InfoRow>
+              )}
+            </InfoSection>
+          )}
 
         <InfoSection $variant="operational">
           <InfoRow>
