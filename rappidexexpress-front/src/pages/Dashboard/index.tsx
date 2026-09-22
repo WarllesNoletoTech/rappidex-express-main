@@ -20,6 +20,10 @@ import type {
   DeliveryPerformancePeriods,
 } from "../../shared/utils/deliveryPerformance";
 import {
+  createTrailingDebounce,
+  runWithLoader,
+} from "../../shared/utils/dashboardAsync";
+import {
   getLinkToWhatsapp,
   messageTypes,
 } from "../../shared/constants/whatsapp.constants";
@@ -724,6 +728,7 @@ export function Dashboard() {
 
   const [status, setStatus] = useState<string>(`${StatusDelivery.PENDING}`);
   const [loading, setLoading] = useState<boolean>(true);
+  const [loadWarning, setLoadWarning] = useState<string>("");
   const [reports, setReports] = useState<Report[]>([]);
   const [deliveryPerformanceCounts, setDeliveryPerformanceCounts] =
     useState<DeliveryPerformancePeriods>({
@@ -787,8 +792,8 @@ export function Dashboard() {
   const [adminCounterDateRange, setAdminCounterDateRange] = useState(
     () => defaultAdminCounterRange,
   );
-  const reloadTimeoutRef = useRef<number | null>(null);
   const refreshRequestIdRef = useRef(0);
+  const refreshAbortRef = useRef<AbortController | null>(null);
   const didFirstLoadRef = useRef(false);
   const deliveryGainTimeoutRef = useRef<number | null>(null);
   const earningToastRef = useRef<HTMLDivElement | null>(null);
@@ -1076,6 +1081,9 @@ export function Dashboard() {
   const refreshDashboard = useCallback(
     async (showLoader = false) => {
       const requestId = ++refreshRequestIdRef.current;
+      refreshAbortRef.current?.abort();
+      const abortController = new AbortController();
+      refreshAbortRef.current = abortController;
 
       if (showLoader) {
         setLoading(true);
@@ -1105,8 +1113,11 @@ export function Dashboard() {
       // os COUNTs podem levar mais tempo que a consulta dos cards.
       const deliveriesPromise = api.get(
         `/delivery?${deliveryParams.toString()}`,
+        { signal: abortController.signal },
       );
-      const countsPromise = api.get(countsUrl);
+      const countsPromise = api.get(countsUrl, {
+        signal: abortController.signal,
+      });
 
       try {
         const currentResponse = await deliveriesPromise;
@@ -1120,12 +1131,17 @@ export function Dashboard() {
           : [];
 
         setReports(rawReports);
+        setLoadWarning("");
       } catch (error: any) {
         if (requestId !== refreshRequestIdRef.current) {
           return;
         }
 
-        alert(error.response?.data?.message || "Erro ao carregar pedidos.");
+        if (error?.code !== "ERR_CANCELED") {
+          setLoadWarning(
+            "Não foi possível atualizar os dados. Tentando novamente.",
+          );
+        }
       } finally {
         // O spinner principal depende somente da lista de entregas.
         // Os contadores podem terminar depois sem travar a tela inteira.
@@ -1272,6 +1288,7 @@ export function Dashboard() {
       setCities(rawData as City[]);
     } catch (error) {
       console.error("Erro ao carregar cidades:", error);
+      setLoadWarning("Alguns dados auxiliares não puderam ser atualizados.");
     }
   }, []);
 
@@ -1283,6 +1300,7 @@ export function Dashboard() {
       setMotoboys(motoboysRes.data ?? []);
     } catch (error) {
       console.error("Erro ao carregar motoboys:", error);
+      setLoadWarning("Alguns dados auxiliares não puderam ser atualizados.");
     }
   }, [canManageReleaseOrder, permission]);
 
@@ -1798,10 +1816,16 @@ export function Dashboard() {
       return;
     }
 
-    void refreshDashboard(true).finally(() => {
-      didFirstLoadRef.current = true;
-    });
+    void runWithLoader(() => refreshDashboard(false), setLoading).finally(
+      () => {
+        didFirstLoadRef.current = true;
+      },
+    );
   }, [refreshDashboard, userContextReady]);
+
+  useEffect(() => {
+    return () => refreshAbortRef.current?.abort();
+  }, []);
 
   useEffect(() => {
     void getCities();
@@ -1849,19 +1873,13 @@ export function Dashboard() {
       timeout: 10000,
     });
 
-    const reloadDeliveries = () => {
-      if (reloadTimeoutRef.current) {
-        window.clearTimeout(reloadTimeoutRef.current);
-      }
-
-      reloadTimeoutRef.current = window.setTimeout(() => {
-        void Promise.all([
-          refreshDashboard(false),
-          getMotoboys(),
-          refreshDeliveryPerformance(),
-        ]);
-      }, 250);
-    };
+    const reloadDeliveries = createTrailingDebounce(() => {
+      void Promise.all([
+        refreshDashboard(false),
+        getMotoboys(),
+        refreshDeliveryPerformance(),
+      ]);
+    }, 250);
 
     socket.on("connect", () => {
       socket.emit("join-city", currentCityId);
@@ -1872,9 +1890,7 @@ export function Dashboard() {
     socket.on("delivery:deleted", reloadDeliveries);
 
     return () => {
-      if (reloadTimeoutRef.current) {
-        window.clearTimeout(reloadTimeoutRef.current);
-      }
+      reloadDeliveries.cancel();
 
       socket.off("delivery:created", reloadDeliveries);
       socket.off("delivery:updated", reloadDeliveries);
@@ -1908,6 +1924,31 @@ export function Dashboard() {
 
   return (
     <Container>
+      {loadWarning && (
+        <div
+          role="status"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "12px",
+            alignItems: "center",
+            padding: "12px 16px",
+            marginBottom: "12px",
+            borderRadius: "8px",
+            background: "rgba(245, 158, 11, 0.12)",
+            color: "#fbbf24",
+          }}
+        >
+          <span>{loadWarning}</span>
+          <button
+            type="button"
+            onClick={() => void refreshDashboard(true)}
+            style={{ cursor: "pointer", fontWeight: 700 }}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
       {deliveryGain && (
         <DeliveryGainToast
           ref={earningToastRef}
