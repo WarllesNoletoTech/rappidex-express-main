@@ -22,7 +22,6 @@ import { Loader } from "../../components/Loader";
 const ProfileFormValidationSchema = zod.object({
   name: zod.string().min(5, "Informe o seu nome."),
   phone: zod.string(),
-  managerWhatsapp: zod.string().optional(),
   user: zod.string(),
   password: zod.string(),
   pix: zod.string(),
@@ -48,7 +47,6 @@ export function NewUser() {
   const [formValues, setFormValues] = useState({
     name: "",
     phone: "",
-    managerWhatsapp: "",
     user: "",
     password: "",
     pix: "",
@@ -107,7 +105,6 @@ export function NewUser() {
     }
 
     const normalizedPhone = formatPhone(data.phone);
-    const normalizedManagerWhatsapp = formatPhone(data.managerWhatsapp || "");
 
     if (!normalizedPhone) {
       alert("Informe o WhatsApp do lojista.");
@@ -151,7 +148,6 @@ export function NewUser() {
       const response = await api.post("/user", {
         ...data,
         phone: normalizedPhone,
-        managerWhatsapp: normalizedManagerWhatsapp,
         type: selectedType,
         permission:
           selectedType === "admin" || selectedType === "superadmin"
@@ -192,7 +188,6 @@ export function NewUser() {
     const {
       name,
       phone,
-      managerWhatsapp,
       user,
       pix,
       profileImage,
@@ -209,7 +204,6 @@ export function NewUser() {
     }
 
     const normalizedPhone = formatPhone(phone);
-    const normalizedManagerWhatsapp = formatPhone(managerWhatsapp || "");
 
     if (!normalizedPhone) {
       alert("Informe o WhatsApp do lojista.");
@@ -221,7 +215,6 @@ export function NewUser() {
       const response = await api.put(`/user/${userId}`, {
         name,
         phone: normalizedPhone,
-        managerWhatsapp: normalizedManagerWhatsapp,
         user,
         pix,
         profileImage,
@@ -234,7 +227,6 @@ export function NewUser() {
         ...getValues(),
         ...response.data,
         phone: formatPhoneForMask(response.data?.phone || normalizedPhone),
-        managerWhatsapp: formatPhoneForMask(response.data?.managerWhatsapp || normalizedManagerWhatsapp),
       };
       setFormValues(nextValues);
       reset(nextValues);
@@ -419,7 +411,6 @@ export function NewUser() {
         ...userFinded.data,
         password: "",
         phone: formatPhoneForMask(userFinded.data?.phone || ""),
-        managerWhatsapp: formatPhoneForMask(userFinded.data?.managerWhatsapp || ""),
       };
       setFormValues(nextValues);
       reset(nextValues);
@@ -510,15 +501,6 @@ export function NewUser() {
             id="phone"
             placeholder="Ex: 5594991000000 ou 94991000000"
             {...register("phone")}
-          />
-
-          <label htmlFor="managerWhatsapp">WhatsApp do gerente:</label>
-          <BaseInput
-            type="text"
-            inputMode="numeric"
-            id="managerWhatsapp"
-            placeholder="Ex: 5594991000000 ou 94991000000"
-            {...register("managerWhatsapp")}
           />
 
           <label htmlFor="user">User:</label>

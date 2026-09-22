@@ -168,12 +168,17 @@ export function parseDeliveryValue(value?: string | number | null): number {
   return Number.isFinite(parsedValue) ? parsedValue : 0;
 }
 
-function getCreatedDateForReportPeriod(report: Report): Date | null {
-  if (!report.createdAt) return null;
+function getFinishedDate(report: Report): Date | null {
+  const finishedDateValue =
+    report.finishedAt ||
+    report.completedAt ||
+    report.finalizedAt ||
+    report.updatedAt;
 
-  const createdAt = new Date(report.createdAt);
+  if (!finishedDateValue) return null;
+  const finishedDate = new Date(finishedDateValue);
 
-  return Number.isNaN(createdAt.getTime()) ? null : createdAt;
+  return Number.isNaN(finishedDate.getTime()) ? null : finishedDate;
 }
 
 function getCityDeliveryValue(
@@ -256,17 +261,17 @@ export function calculateDeliveryPerformance(
       return;
     }
 
-    const createdAt = getCreatedDateForReportPeriod(report);
-    if (!createdAt) return;
+    const finishedAt = getFinishedDate(report);
+    if (!finishedAt) return;
 
     const deliveryValue = getCityDeliveryValue(report, deliveryValueByCityId);
 
-    if (isWithinRange(createdAt, weekRange)) {
+    if (isWithinRange(finishedAt, weekRange)) {
       performance.week.count += 1;
       performance.week.total += deliveryValue;
     }
 
-    if (isWithinRange(createdAt, todayRange)) {
+    if (isWithinRange(finishedAt, todayRange)) {
       performance.today.count += 1;
       performance.today.total += deliveryValue;
     }

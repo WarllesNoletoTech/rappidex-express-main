@@ -20,7 +20,6 @@ export interface User {
   name: string;
   permission: string;
   phone: string;
-  managerWhatsapp?: string;
   profileImage: string;
   type: string;
   user: string;
@@ -31,6 +30,4 @@ export interface User {
   ifoodOrdersReleased?: number;
   ifoodOrdersUsed?: number;
   ifoodOrdersAvailable?: number;
-  menuFlowEnabled?: boolean;
-  menuFlowCompanyId?: string;
 }

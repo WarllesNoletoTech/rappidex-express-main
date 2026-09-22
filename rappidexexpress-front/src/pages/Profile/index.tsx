@@ -32,8 +32,7 @@ const ProfileFormValidationSchema = zod.object({
     phone: zod
       .string()
       .min(11, 'Informe o seu numero.')
-      .max(13),
-    managerWhatsapp: zod.string().optional(),
+      .max(11),
     pix: zod.string(),
     profileImage: zod.string(),
     location: zod.string()
@@ -59,7 +58,6 @@ export function Profile(){
     const [formValues, setFormValues] = useState({
         name: '',
         phone: '',
-        managerWhatsapp: '',
         pix: '',
         profileImage: '',
         location: ''
@@ -163,7 +161,6 @@ export function Profile(){
             setFormValues({
                 name: response.data.name,
                 phone: response.data.phone,
-                managerWhatsapp: response.data.managerWhatsapp || '',
                 pix: response.data.pix,
                 profileImage: response.data.profileImage,
                 location: response.data.location,
@@ -261,15 +258,6 @@ export function Profile(){
                             placeholder="Informe o seu whatsapp."
                             disabled
                             {...register('phone')}
-                        />
-
-                        <label htmlFor="managerWhatsapp">WhatsApp do gerente:</label>
-                        <BaseInput
-                            type="text"
-                            id="managerWhatsapp"
-                            placeholder="WhatsApp do gerente não cadastrado."
-                            disabled
-                            {...register('managerWhatsapp')}
                         />
 
                         <label htmlFor="pix">Pix:</label>

@@ -213,21 +213,6 @@ function canCancelDelivery(report: Report, permission: string | null) {
   return isAdminOrSuperadminUser(permission) || !isDeliveryAssigned(report);
 }
 
-const menuFlowStatusLabels: Record<string, string> = {
-  [StatusDelivery.AWAITING_RELEASE]: "Aguardando liberação",
-  [StatusDelivery.PENDING]: "Aguardando motoboy",
-  [StatusDelivery.ONCOURSE]: "Motoboy indo até o estabelecimento",
-  [StatusDelivery.ARRIVED_AT_STORE]: "Motoboy chegou ao estabelecimento",
-  [StatusDelivery.COLLECTED]: "Motoboy a caminho do cliente",
-  [StatusDelivery.ARRIVED_AT_DESTINATION]: "Motoboy chegou ao destino",
-  [StatusDelivery.AWAITING_CODE]: "Aguardando código de entrega",
-  [StatusDelivery.FINISHED]: "Entrega concluída",
-  [StatusDelivery.CANCELED]: "Entrega cancelada",
-};
-
-const getMenuFlowStatusLabel = (status?: string) =>
-  status ? menuFlowStatusLabels[status] || status : "Não informado";
-
 function playMoneySound() {
   try {
     const AudioContextClass =
@@ -329,16 +314,6 @@ const DeliveryCard = memo(function DeliveryCard({
     Boolean(report.isIfoodOrder) ||
     report.observation?.includes("Pedido iFood #") ||
     report.observation?.includes("Pedido iFood");
-  const isMenuFlowOrder =
-    report.source === "MENU_FLOW" || Boolean(report.menuFlowOrderId);
-  const menuFlowOrderNumber = String(report.menuFlowOrderNumber || "").trim();
-  const formatMenuFlowMoney = (cents?: number) =>
-    typeof cents === "number"
-      ? (cents / 100).toLocaleString("pt-BR", {
-          style: "currency",
-          currency: "BRL",
-        })
-      : "Não informado";
   const ifoodOrderNumber =
     getIfoodOrderNumber(report.observation) ||
     (report as any).ifoodDisplayId ||
@@ -363,9 +338,7 @@ const DeliveryCard = memo(function DeliveryCard({
   const ifoodMerchantId = String(report.ifoodMerchantId || "").trim();
   const nomeLojaCard = isIfoodOrder
     ? ifoodMerchantName || ifoodMerchantId || report.establishmentName
-    : isMenuFlowOrder
-      ? report.menuFlowRestaurantName || report.establishmentName
-      : report.establishmentName;
+    : report.establishmentName;
   const localizacaoLojaCard = isIfoodOrder
     ? ifoodMerchantLocation
     : report.establishmentLocation;
@@ -402,25 +375,8 @@ const DeliveryCard = memo(function DeliveryCard({
         </ContainerImagem>
 
         <ShopkeeperInfo>
-          {isMenuFlowOrder ? (
-            <>
-              <p>{nomeLojaCard}</p>
-              <IfoodStoreBadge>MENU FLOW</IfoodStoreBadge>
-              <p>
-                Pedido{' '}
-                {menuFlowOrderNumber
-                  ? `#${menuFlowOrderNumber.replace(/^#/, '')}`
-                  : report.menuFlowOrderId
-                    ? `#${report.menuFlowOrderId}`
-                    : ''}
-              </p>
-            </>
-          ) : (
-            <>
-              {isIfoodOrder && <IfoodStoreBadge>Loja iFood</IfoodStoreBadge>}
-              <p>{nomeLojaCard}</p>
-            </>
-          )}
+          {isIfoodOrder && <IfoodStoreBadge>Loja iFood</IfoodStoreBadge>}
+          <p>{nomeLojaCard}</p>
 
           <Link
             href={getLinkToWhatsapp(
@@ -447,7 +403,7 @@ const DeliveryCard = memo(function DeliveryCard({
         </ShopkeeperInfo>
       </ContainerShopkeeper>
 
-      {(statusFilter !== StatusDelivery.PENDING || isMenuFlowOrder) && (
+      {statusFilter !== StatusDelivery.PENDING && (
         <ContainerOrder>
           <SectionTitle>Informações rápidas</SectionTitle>
 
@@ -456,25 +412,19 @@ const DeliveryCard = memo(function DeliveryCard({
               <InfoLabel>Status</InfoLabel>
               <InfoValue>
                 <ContainerStatus>
-                  <Status type={report.status}>
-                    {isMenuFlowOrder
-                      ? getMenuFlowStatusLabel(report.status)
-                      : report.status}
-                  </Status>
+                  <Status type={report.status}>{report.status}</Status>
                 </ContainerStatus>
               </InfoValue>
             </InfoRow>
 
-            {!isMenuFlowOrder && (
-              <InfoRow>
-                <InfoLabel>Andamento</InfoLabel>
-                <InfoValue>
-                  {permission === UserType.SHOPKEEPER
-                    ? getEstablishmentVisualStatus(report)
-                    : getClientVisualStatus(report)}
-                </InfoValue>
-              </InfoRow>
-            )}
+            <InfoRow>
+              <InfoLabel>Andamento</InfoLabel>
+              <InfoValue>
+                {permission === UserType.SHOPKEEPER
+                  ? getEstablishmentVisualStatus(report)
+                  : getClientVisualStatus(report)}
+              </InfoValue>
+            </InfoRow>
 
             <InfoRow>
               <InfoLabel>Pagamento</InfoLabel>
@@ -482,34 +432,22 @@ const DeliveryCard = memo(function DeliveryCard({
             </InfoRow>
 
             <InfoRow>
-              <InfoLabel>{isMenuFlowOrder ? "Total" : "Valor"}</InfoLabel>
-              <InfoValue>
-                {isMenuFlowOrder
-                  ? typeof report.menuFlowTotalCents === "number"
-                    ? formatMenuFlowMoney(report.menuFlowTotalCents)
-                    : `R$ ${report.value}`
-                  : `R$ ${report.value}`}
-              </InfoValue>
+              <InfoLabel>Valor</InfoLabel>
+              <InfoValue>R$ {report.value}</InfoValue>
             </InfoRow>
 
-            {!isMenuFlowOrder && (
-              <InfoRow>
-                <InfoLabel>Pix</InfoLabel>
-                <InfoValue>
-                  {report.establishmentPix || "Não informado"}
-                </InfoValue>
-              </InfoRow>
-            )}
+            <InfoRow>
+              <InfoLabel>Pix</InfoLabel>
+              <InfoValue>
+                {report.establishmentPix || "Não informado"}
+              </InfoValue>
+            </InfoRow>
 
             <InfoRow>
               <InfoLabel>Refrigerante</InfoLabel>
               {isIfoodOrder ? (
                 <IfoodSodaWarning>
                   Confirmar refrigerante com o estabelecimento
-                </IfoodSodaWarning>
-              ) : isMenuFlowOrder ? (
-                <IfoodSodaWarning>
-                  Conferir bebida com o estabelecimento
                 </IfoodSodaWarning>
               ) : (
                 <InfoValue>{report.soda || "Não informado"}</InfoValue>
@@ -523,12 +461,10 @@ const DeliveryCard = memo(function DeliveryCard({
         <SectionTitle>Detalhes do pedido</SectionTitle>
 
         <InfoSection>
-          {!isMenuFlowOrder && (
-            <InfoRow>
-              <InfoLabel>Localizador</InfoLabel>
-              <InfoValue>{orderLocator || "Não informado"}</InfoValue>
-            </InfoRow>
-          )}
+          <InfoRow>
+            <InfoLabel>Localizador</InfoLabel>
+            <InfoValue>{orderLocator || "Não informado"}</InfoValue>
+          </InfoRow>
 
           {isIfoodOrder && (
             <>
@@ -546,27 +482,19 @@ const DeliveryCard = memo(function DeliveryCard({
             </>
           )}
 
-          {isMenuFlowOrder && (
-            <InfoRow>
-              <InfoLabel>Origem</InfoLabel>
-              <InfoValue>Menu Flow</InfoValue>
-            </InfoRow>
-          )}
-
           <InfoRow>
             <InfoLabel>Cliente</InfoLabel>
             <InfoValue>{report.clientName || "Não informado"}</InfoValue>
           </InfoRow>
 
-          {(statusFilter !== StatusDelivery.PENDING || isMenuFlowOrder) &&
-            ifoodClientAddress && (
+          {statusFilter !== StatusDelivery.PENDING && ifoodClientAddress && (
             <InfoRow>
               <InfoLabel>Endereço</InfoLabel>
               <InfoValue>{ifoodClientAddress}</InfoValue>
             </InfoRow>
           )}
 
-          {(statusFilter !== StatusDelivery.PENDING || isMenuFlowOrder) &&
+          {statusFilter !== StatusDelivery.PENDING &&
             ifoodClientLocationLink && (
               <InfoRow>
                 <InfoLabel>Mapa</InfoLabel>
@@ -582,7 +510,7 @@ const DeliveryCard = memo(function DeliveryCard({
               </InfoRow>
             )}
 
-          {(statusFilter !== StatusDelivery.PENDING || isMenuFlowOrder) &&
+          {statusFilter !== StatusDelivery.PENDING &&
             !ifoodClientLocationLink &&
             googleMapsAddressLink && (
               <InfoRow>
@@ -599,7 +527,7 @@ const DeliveryCard = memo(function DeliveryCard({
               </InfoRow>
             )}
 
-          {(statusFilter !== StatusDelivery.PENDING || isMenuFlowOrder) && (
+          {statusFilter !== StatusDelivery.PENDING && (
             <InfoRow>
               <InfoLabel>WhatsApp</InfoLabel>
               <InfoValue>
@@ -619,41 +547,6 @@ const DeliveryCard = memo(function DeliveryCard({
             </InfoRow>
           )}
         </InfoSection>
-
-        {isMenuFlowOrder &&
-          Array.isArray(report.menuFlowItems) &&
-          report.menuFlowItems.length > 0 && (
-            <InfoSection>
-              <InfoRow>
-                <InfoLabel>Itens</InfoLabel>
-                <InfoValue>
-                  {report.menuFlowItems.map((item, index) => {
-                    const addons = (item.addons || [])
-                      .map((addon) => addon.name)
-                      .filter(Boolean)
-                      .join(", ");
-                    return (
-                      <div key={`${item.productName}-${index}`}>
-                        <strong>{item.quantity}x {item.productName}</strong>
-                        {addons ? ` • ${addons}` : ""}
-                        {item.observation ? ` • Obs.: ${item.observation}` : ""}
-                      </div>
-                    );
-                  })}
-                </InfoValue>
-              </InfoRow>
-              {report.menuFlowPaymentMethod === "CASH" && (
-                <InfoRow>
-                  <InfoLabel>Troco</InfoLabel>
-                  <InfoValue>
-                    {report.menuFlowNeedsChange && report.menuFlowChangeForCents
-                      ? `Troco para ${formatMenuFlowMoney(report.menuFlowChangeForCents)}`
-                      : "Não precisa"}
-                  </InfoValue>
-                </InfoRow>
-              )}
-            </InfoSection>
-          )}
 
         <InfoSection $variant="operational">
           <InfoRow>
@@ -1199,6 +1092,11 @@ export function Dashboard() {
         if (isCurrentUserSuperAdmin && currentCityId) {
           deliveryParams.set("cityId", currentCityId);
         }
+        // A lista precisa usar exatamente o mesmo período dos contadores.
+        // Sem isso, o contador considera a semana selecionada, mas os cards
+        // podem trazer entregas históricas PENDENTE/ACAMINHO do banco inteiro.
+        deliveryParams.set("createdIn", adminCounterDateRange.start);
+        deliveryParams.set("createdUntil", adminCounterDateRange.end);
 
         const countsUrl = countsParams.toString()
           ? `/delivery/counts?${countsParams.toString()}`
@@ -1412,19 +1310,10 @@ export function Dashboard() {
           hasActiveIfoodMerchant(currentUser.selectedEstablishment) ||
           hasActiveIfoodMerchant(currentUser.company));
 
-      const hasMenuFlowIntegration = Boolean(
-        currentUser.menuFlowEnabled ||
-          currentUser.establishment?.menuFlowEnabled ||
-          currentUser.selectedEstablishment?.menuFlowEnabled ||
-          currentUser.company?.menuFlowEnabled,
-      );
-
       const nextCanViewReleaseTab =
-        isAdminOrSuperadmin ||
-        (isShopkeeper && (hasIfoodIntegration || hasMenuFlowIntegration));
+        isAdminOrSuperadmin || (isShopkeeper && hasIfoodIntegration);
       const nextCanManageReleaseOrder =
-        isAdminOrSuperadmin ||
-        (isShopkeeper && (hasIfoodIntegration || hasMenuFlowIntegration));
+        isAdminOrSuperadmin || (isShopkeeper && hasIfoodIntegration);
 
       setCanViewReleaseTab(nextCanViewReleaseTab);
       setCanManageReleaseOrder(nextCanManageReleaseOrder);
