@@ -770,6 +770,7 @@ export function Dashboard() {
     Record<string, string>
   >({});
   const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [userContextReady, setUserContextReady] = useState(false);
   const [isCurrentUserMotoboy, setIsCurrentUserMotoboy] = useState<boolean>(
     permission === UserType.MOTOBOY,
   );
@@ -1080,32 +1081,34 @@ export function Dashboard() {
         setLoading(true);
       }
 
+      const countsParams = new URLSearchParams();
+      if (isCurrentUserSuperAdmin && currentCityId) {
+        countsParams.set("cityId", currentCityId);
+      }
+      countsParams.set("createdIn", adminCounterDateRange.start);
+      countsParams.set("createdUntil", adminCounterDateRange.end);
+
+      const deliveryParams = new URLSearchParams({ status });
+      if (isCurrentUserSuperAdmin && currentCityId) {
+        deliveryParams.set("cityId", currentCityId);
+      }
+      deliveryParams.set("createdIn", adminCounterDateRange.start);
+      deliveryParams.set("createdUntil", adminCounterDateRange.end);
+
+      const countsUrl = countsParams.toString()
+        ? `/delivery/counts?${countsParams.toString()}`
+        : "/delivery/counts";
+
+      // Dispara as duas chamadas juntas, mas não deixa o contador financeiro
+      // bloquear a lista de pedidos. Com histórico grande no PostgreSQL,
+      // os COUNTs podem levar mais tempo que a consulta dos cards.
+      const deliveriesPromise = api.get(
+        `/delivery?${deliveryParams.toString()}`,
+      );
+      const countsPromise = api.get(countsUrl);
+
       try {
-        const countsParams = new URLSearchParams();
-        if (isCurrentUserSuperAdmin && currentCityId) {
-          countsParams.set("cityId", currentCityId);
-        }
-        countsParams.set("createdIn", adminCounterDateRange.start);
-        countsParams.set("createdUntil", adminCounterDateRange.end);
-
-        const deliveryParams = new URLSearchParams({ status });
-        if (isCurrentUserSuperAdmin && currentCityId) {
-          deliveryParams.set("cityId", currentCityId);
-        }
-        // A lista precisa usar exatamente o mesmo período dos contadores.
-        // Sem isso, o contador considera a semana selecionada, mas os cards
-        // podem trazer entregas históricas PENDENTE/ACAMINHO do banco inteiro.
-        deliveryParams.set("createdIn", adminCounterDateRange.start);
-        deliveryParams.set("createdUntil", adminCounterDateRange.end);
-
-        const countsUrl = countsParams.toString()
-          ? `/delivery/counts?${countsParams.toString()}`
-          : "/delivery/counts";
-
-        const [currentResponse, countsResponse] = await Promise.all([
-          api.get(`/delivery?${deliveryParams.toString()}`),
-          api.get(countsUrl),
-        ]);
+        const currentResponse = await deliveriesPromise;
 
         if (requestId !== refreshRequestIdRef.current) {
           return;
@@ -1114,12 +1117,34 @@ export function Dashboard() {
         const rawReports = Array.isArray(currentResponse.data?.data)
           ? currentResponse.data.data
           : [];
+
+        setReports(rawReports);
+      } catch (error: any) {
+        if (requestId !== refreshRequestIdRef.current) {
+          return;
+        }
+
+        alert(error.response?.data?.message || "Erro ao carregar pedidos.");
+      } finally {
+        // O spinner principal depende somente da lista de entregas.
+        // Os contadores podem terminar depois sem travar a tela inteira.
+        if (showLoader && requestId === refreshRequestIdRef.current) {
+          setLoading(false);
+        }
+      }
+
+      try {
+        const countsResponse = await countsPromise;
+
+        if (requestId !== refreshRequestIdRef.current) {
+          return;
+        }
+
         const nextPendingCount = Number(countsResponse.data?.pending) || 0;
         const nextAssignedCount = Number(countsResponse.data?.assigned) || 0;
         const nextWaitingReleaseCount =
           Number(countsResponse.data?.waitingRelease) || 0;
 
-        setReports(rawReports);
         setPendingCount(nextPendingCount);
         setAssignedCount(nextAssignedCount);
         setWaitingReleaseCount(nextWaitingReleaseCount);
@@ -1140,11 +1165,10 @@ export function Dashboard() {
           return;
         }
 
-        alert(error.response?.data?.message || "Erro ao carregar pedidos.");
-      } finally {
-        if (showLoader && requestId === refreshRequestIdRef.current) {
-          setLoading(false);
-        }
+        console.error(
+          "Erro ao carregar contadores do dashboard:",
+          error.response?.data?.message || error,
+        );
       }
     },
     [
@@ -1320,6 +1344,8 @@ export function Dashboard() {
       setIsCurrentUserSuperAdmin(currentType === UserType.SUPERADMIN);
     } catch (error) {
       console.error("Erro ao carregar usuário atual:", error);
+    } finally {
+      setUserContextReady(true);
     }
   }, [permission]);
 
@@ -1767,10 +1793,14 @@ export function Dashboard() {
   );
 
   useEffect(() => {
+    if (!userContextReady) {
+      return;
+    }
+
     void refreshDashboard(true).finally(() => {
       didFirstLoadRef.current = true;
     });
-  }, [refreshDashboard]);
+  }, [refreshDashboard, userContextReady]);
 
   useEffect(() => {
     void getCities();
@@ -1812,7 +1842,10 @@ export function Dashboard() {
     if (!currentCityId) return;
 
     const socket = io(SOCKET_URL, {
-      transports: ["websocket", "polling"],
+      transports: ["polling", "websocket"],
+      upgrade: true,
+      reconnection: true,
+      timeout: 10000,
     });
 
     const reloadDeliveries = () => {
