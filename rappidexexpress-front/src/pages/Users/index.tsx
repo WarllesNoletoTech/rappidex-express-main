@@ -83,8 +83,11 @@ export function Users() {
             await api.patch(`/user/${userId}/unblock`)
             await getData(1)
             alert('Usuário desbloqueado com sucesso.')
-        } catch (error: any) {
-            alert(error.response?.data?.message ?? 'Erro ao desbloquear usuário.')
+        } catch (error: unknown) {
+            const message = (
+                error as { response?: { data?: { message?: string } } }
+            ).response?.data?.message
+            alert(message ?? 'Erro ao desbloquear usuário.')
         }
     }
 

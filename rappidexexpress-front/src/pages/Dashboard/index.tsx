@@ -788,6 +788,9 @@ export function Dashboard() {
     () => defaultAdminCounterRange,
   );
   const reloadTimeoutRef = useRef<number | null>(null);
+  const refreshDashboardRef = useRef<
+    ((showLoader?: boolean) => Promise<void>) | undefined
+  >(undefined);
   const refreshRequestIdRef = useRef(0);
   const didFirstLoadRef = useRef(false);
   const deliveryGainTimeoutRef = useRef<number | null>(null);
@@ -1089,6 +1092,7 @@ export function Dashboard() {
       countsParams.set("createdUntil", adminCounterDateRange.end);
 
       const deliveryParams = new URLSearchParams({ status });
+      deliveryParams.set("includeTotal", "false");
       if (isCurrentUserSuperAdmin && currentCityId) {
         deliveryParams.set("cityId", currentCityId);
       }
@@ -1180,6 +1184,10 @@ export function Dashboard() {
     ],
   );
 
+  useEffect(() => {
+    refreshDashboardRef.current = refreshDashboard;
+  }, [refreshDashboard]);
+
   const getReportsFromCurrentMotoboy = useCallback(
     (rawReports: Report[]) => {
       return rawReports.filter((report) => {
@@ -1211,13 +1219,13 @@ export function Dashboard() {
       const [todayResponse, weekResponse, closedWeekResponse] =
         await Promise.all([
           api.get(
-            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${todayRange.start}&createdUntil=${todayRange.end}&itemsPerPage=${itemsPerPage}`,
+            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${todayRange.start}&createdUntil=${todayRange.end}&itemsPerPage=${itemsPerPage}&includeTotal=false`,
           ),
           api.get(
-            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${weekRange.start}&createdUntil=${weekRange.end}&itemsPerPage=${itemsPerPage}`,
+            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${weekRange.start}&createdUntil=${weekRange.end}&itemsPerPage=${itemsPerPage}&includeTotal=false`,
           ),
           api.get(
-            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${closedWeekRange.start}&createdUntil=${closedWeekRange.end}&itemsPerPage=${itemsPerPage}`,
+            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${closedWeekRange.start}&createdUntil=${closedWeekRange.end}&itemsPerPage=${itemsPerPage}&includeTotal=false`,
           ),
         ]);
 
@@ -1854,11 +1862,9 @@ export function Dashboard() {
       }
 
       reloadTimeoutRef.current = window.setTimeout(() => {
-        void Promise.all([
-          refreshDashboard(false),
-          getMotoboys(),
-          refreshDeliveryPerformance(),
-        ]);
+        // Um único refresh consolidado (lista + contadores) evita rajadas de
+        // até seis requests para cada sequência de eventos do Socket.IO.
+        void refreshDashboardRef.current?.(false);
       }, 250);
     };
 
@@ -1880,12 +1886,7 @@ export function Dashboard() {
       socket.off("delivery:deleted", reloadDeliveries);
       socket.disconnect();
     };
-  }, [
-    currentCityId,
-    getMotoboys,
-    refreshDashboard,
-    refreshDeliveryPerformance,
-  ]);
+  }, [currentCityId]);
 
   const confirmationReport = confirmAction?.report || null;
   const isCancelingDelivery = Boolean(
