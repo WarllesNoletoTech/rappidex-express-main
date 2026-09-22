@@ -157,7 +157,7 @@ export function Cities() {
       setLoading(false);
       setUserLoading(false);
     }
-  }, [isCityAdmin, isSuperAdmin]);
+  }, [permission]);
 
   function resetForm() {
     setCityName("");
