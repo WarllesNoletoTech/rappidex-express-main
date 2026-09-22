@@ -380,6 +380,18 @@ const DeliveryCard = memo(function DeliveryCard({
 
         <ShopkeeperInfo>
           {isIfoodOrder && <IfoodStoreBadge>Loja iFood</IfoodStoreBadge>}
+<<<<<<< HEAD
+=======
+          {isMenuFlowOrder && <IfoodStoreBadge>MENU FLOW</IfoodStoreBadge>}
+          {isMenuFlowOrder && (
+            <p>
+              Pedido do Menu Flow{' '}
+              {menuFlowOrderNumber
+                ? `#${menuFlowOrderNumber.replace(/^#/, '')}`
+                : ''}
+            </p>
+          )}
+>>>>>>> parent of 6db4bc2 (correção atualização)
           <p>{nomeLojaCard}</p>
 
           <Link
@@ -486,6 +498,32 @@ const DeliveryCard = memo(function DeliveryCard({
             </>
           )}
 
+<<<<<<< HEAD
+=======
+          {isMenuFlowOrder && (
+            <>
+              <InfoRow>
+                <InfoLabel>Origem</InfoLabel>
+                <InfoValue>Pedido do Menu Flow</InfoValue>
+              </InfoRow>
+              <InfoRow>
+                <InfoLabel>Pedido Menu Flow</InfoLabel>
+                <InfoValue>
+                  {menuFlowOrderNumber
+                    ? `#${menuFlowOrderNumber.replace(/^#/, "")}`
+                    : report.menuFlowOrderId || "Não informado"}
+                </InfoValue>
+              </InfoRow>
+              {report.menuFlowRestaurantName && (
+                <InfoRow>
+                  <InfoLabel>Loja Menu Flow</InfoLabel>
+                  <InfoValue>{report.menuFlowRestaurantName}</InfoValue>
+                </InfoRow>
+              )}
+            </>
+          )}
+
+>>>>>>> parent of 6db4bc2 (correção atualização)
           <InfoRow>
             <InfoLabel>Cliente</InfoLabel>
             <InfoValue>{report.clientName || "Não informado"}</InfoValue>
@@ -552,6 +590,82 @@ const DeliveryCard = memo(function DeliveryCard({
           )}
         </InfoSection>
 
+<<<<<<< HEAD
+=======
+        {isMenuFlowOrder && (
+          <InfoSection>
+            <InfoRow>
+              <InfoLabel>Origem da entrega</InfoLabel>
+              <InfoValue>Menu Flow</InfoValue>
+            </InfoRow>
+            <InfoRow>
+              <InfoLabel>Valor dos produtos</InfoLabel>
+              <InfoValue>{formatMenuFlowMoney(report.menuFlowSubtotalCents)}</InfoValue>
+            </InfoRow>
+            <InfoRow>
+              <InfoLabel>Taxa de entrega</InfoLabel>
+              <InfoValue>{formatMenuFlowMoney(report.menuFlowDeliveryFeeCents)}</InfoValue>
+            </InfoRow>
+            {Boolean(report.menuFlowServiceFeeCents) && (
+              <InfoRow>
+                <InfoLabel>Taxa Menu Flow</InfoLabel>
+                <InfoValue>{formatMenuFlowMoney(report.menuFlowServiceFeeCents)}</InfoValue>
+              </InfoRow>
+            )}
+            {Boolean(report.menuFlowDiscountCents) && (
+              <InfoRow>
+                <InfoLabel>Desconto</InfoLabel>
+                <InfoValue>{formatMenuFlowMoney(report.menuFlowDiscountCents)}</InfoValue>
+              </InfoRow>
+            )}
+            <InfoRow>
+              <InfoLabel>Total do pedido</InfoLabel>
+              <InfoValue>{formatMenuFlowMoney(report.menuFlowTotalCents)}</InfoValue>
+            </InfoRow>
+            <InfoRow>
+              <InfoLabel>Pagamento</InfoLabel>
+              <InfoValue>{report.menuFlowPaymentMethod || report.payment || "Não informado"}</InfoValue>
+            </InfoRow>
+            {report.menuFlowPaymentMethod === "CASH" && (
+              <InfoRow>
+                <InfoLabel>Troco</InfoLabel>
+                <InfoValue>
+                  {report.menuFlowNeedsChange && report.menuFlowChangeForCents
+                    ? `Troco para ${formatMenuFlowMoney(report.menuFlowChangeForCents)}`
+                    : "Não precisa"}
+                </InfoValue>
+              </InfoRow>
+            )}
+            {Array.isArray(report.menuFlowItems) && report.menuFlowItems.length > 0 && (
+              <InfoRow>
+                <InfoLabel>Itens</InfoLabel>
+                <InfoValue>
+                  {report.menuFlowItems.map((item, index) => {
+                    const addons = (item.addons || [])
+                      .map((addon) => addon.name)
+                      .filter(Boolean)
+                      .join(", ");
+                    return (
+                      <div key={`${item.productName}-${index}`}>
+                        {item.quantity}x {item.productName} — {formatMenuFlowMoney(
+                          item.quantity *
+                            (item.unitPriceCents +
+                              (item.addons || []).reduce(
+                                (sum, addon) => sum + Number(addon.priceCents || 0),
+                                0,
+                              )),
+                        )}
+                        {addons ? ` • ${addons}` : ""}
+                      </div>
+                    );
+                  })}
+                </InfoValue>
+              </InfoRow>
+            )}
+          </InfoSection>
+        )}
+
+>>>>>>> parent of 6db4bc2 (correção atualização)
         <InfoSection $variant="operational">
           <InfoRow>
             <InfoLabel>Criado</InfoLabel>
