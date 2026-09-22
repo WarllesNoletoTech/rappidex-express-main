@@ -5,8 +5,7 @@ export enum Colors {
     'gray' = 'gray-100',
     'black' = 'gray-900',
     'green' = 'brand-yellow',
-    'red' = 'red-500',
-    'yellow' = 'brand-yellow'
+    'red' = 'red-500'
 }
 
 export interface LoaderProps {

@@ -778,8 +778,16 @@ export class DeliveryService implements OnModuleInit {
     const requestStartedAt = Date.now();
     const userForRequest = await this.findOneUserById(user.id);
 
-    const page = Number(queryParams.page || 1);
-    const itemsPerPageParam = Number(queryParams.itemsPerPage || 100);
+    const requestedPage = Number(queryParams.page || 1);
+    const requestedItemsPerPage = Number(queryParams.itemsPerPage || 100);
+    const page = Number.isFinite(requestedPage)
+      ? Math.max(1, Math.floor(requestedPage))
+      : 1;
+    // Protege o pool e a memória contra consultas acidentais sem limite. O
+    // dashboard de desempenho usa até 500 registros por período.
+    const itemsPerPageParam = Number.isFinite(requestedItemsPerPage)
+      ? Math.min(500, Math.max(1, Math.floor(requestedItemsPerPage)))
+      : 100;
     const skip = (page - 1) * itemsPerPageParam;
     const take = itemsPerPageParam;
     const where = this.buildDeliveriesWhere(userForRequest, queryParams);
@@ -790,6 +798,9 @@ export class DeliveryService implements OnModuleInit {
     const shouldIncludeDashboardCounts = this.parseBooleanQuery(
       queryParams.includeDashboardCounts,
     );
+    const shouldIncludeTotal =
+      queryParams.includeTotal === undefined ||
+      this.parseBooleanQuery(queryParams.includeTotal);
 
     const dashboardCountsPromise = shouldIncludeDashboardCounts
       ? this.getDashboardCountsByUser(userForRequest, queryParams)
@@ -798,13 +809,14 @@ export class DeliveryService implements OnModuleInit {
     const queryStartedAt = Date.now();
     const [deliveries, count, dashboardCounts] = await Promise.all([
       this.deliveryRepository.find({
-        relations: { motoboy: true, establishment: true },
         where,
         skip,
         take,
         order: { [sortField]: 'ASC', createdAt: 'ASC' } as any,
       }),
-      this.deliveryRepository.count(where),
+      shouldIncludeTotal
+        ? this.deliveryRepository.count(where)
+        : Promise.resolve(0),
       dashboardCountsPromise,
     ]);
     const queryDurationMs = Date.now() - queryStartedAt;
@@ -829,17 +841,17 @@ export class DeliveryService implements OnModuleInit {
     });
 
     const totalDurationMs = Date.now() - requestStartedAt;
-    this.logger.log(
-      `GET /api/delivery performance userId=${userForRequest.id} userType=${userForRequest.type} filters=${JSON.stringify(
-        queryParams,
-      )} returned=${deliveries.length} total=${count} dbQueryMs=${queryDurationMs} totalMs=${totalDurationMs}`,
-    );
+    if (totalDurationMs >= 500) {
+      this.logger.warn(
+        `GET /api/delivery performance userType=${userForRequest.type} returned=${deliveries.length} total=${count} dbQueryMs=${queryDurationMs} totalMs=${totalDurationMs}`,
+      );
+    }
 
     return ListDeliverysResult.fromEntities(
       deliveriesWithSource as any,
       deliveries.length,
       page,
-      count,
+      shouldIncludeTotal ? count : deliveries.length,
       dashboardCounts,
     );
   }
@@ -1074,14 +1086,14 @@ export class DeliveryService implements OnModuleInit {
     this.applyCityWhere(userForRequest, where, queryParams.cityId);
 
     if (userForRequest.type === UserType.MOTOBOY) {
-      where['motoboy.id'] = userForRequest.id;
+      where.motoboyId = userForRequest.id;
     }
 
     if (
       userForRequest.type === UserType.SHOPKEEPER ||
       userForRequest.type === UserType.SHOPKEEPERADMIN
     ) {
-      where['establishment.id'] = userForRequest.id;
+      where.establishmentId = userForRequest.id;
     }
 
     return where;
@@ -1105,13 +1117,13 @@ export class DeliveryService implements OnModuleInit {
     selectedCityId?: string,
   ) {
     if (userForRequest.type !== UserType.SUPERADMIN) {
-      where['establishment.cityId'] = userForRequest.cityId;
+      where.establishmentCityId = userForRequest.cityId;
       return;
     }
 
     const cityId = selectedCityId || userForRequest.cityId;
     if (cityId) {
-      where['establishment.cityId'] = cityId;
+      where.establishmentCityId = cityId;
     }
   }
 
@@ -1225,7 +1237,7 @@ export class DeliveryService implements OnModuleInit {
 
       if (normalizedMotoboyId) {
         const where = {};
-        where['motoboy.id'] = userFinded.id;
+        where['motoboyId'] = userFinded.id;
         where['isActive'] = true;
         where['status'] = {
           $in: [
@@ -1237,7 +1249,7 @@ export class DeliveryService implements OnModuleInit {
             StatusDelivery.AWAITING_CODE,
           ],
         };
-        where['establishment.cityId'] = userFinded.cityId;
+        where['establishmentCityId'] = userFinded.cityId;
 
         const deliveriesForMotoboy = await this.deliveryRepository.count(where);
 
@@ -2274,14 +2286,13 @@ export class DeliveryService implements OnModuleInit {
       status: data.status,
       establishment: this.toDeliveryEstablishmentSnapshot(data.establishment),
       motoboy: this.toDeliveryMotoboySnapshot(data.motoboy),
-      establishmentId:
-        data.establishment?.id ?? data.establishmentId ?? null,
+      establishmentId: data.establishment?.id ?? data.establishmentId ?? null,
       establishmentCityId:
         data.establishment?.cityId ?? data.establishmentCityId ?? null,
       motoboyId:
         data.motoboy === null
           ? null
-          : data.motoboy?.id ?? data.motoboyId ?? null,
+          : (data.motoboy?.id ?? data.motoboyId ?? null),
       value: data.value,
       observation: data.observation,
       destinationObservation: data.destinationObservation ?? null,
@@ -2420,7 +2431,7 @@ export class DeliveryService implements OnModuleInit {
         id: deliveryId,
         isActive: true,
         status: StatusDelivery.ONCOURSE,
-        'motoboy.id': motoboyId,
+        motoboyId,
       } as any,
       {
         $set: {
@@ -2761,8 +2772,8 @@ export class DeliveryService implements OnModuleInit {
     ) {
       if (selectedStatuses.length) where['status'] = { $in: selectedStatuses };
       if (queryParams.establishmentId)
-        where['establishment.id'] = queryParams.establishmentId;
-      if (queryParams.motoboyId) where['motoboy.id'] = queryParams.motoboyId;
+        where.establishmentId = queryParams.establishmentId;
+      if (queryParams.motoboyId) where.motoboyId = queryParams.motoboyId;
       if (queryParams.createdBy) where['createdBy'] = queryParams.createdBy;
     }
 
@@ -2776,15 +2787,15 @@ export class DeliveryService implements OnModuleInit {
 
         // Se tiver um momento em que for necessario que o motoboy solicite todos os pedidos, ele vai conseguir ver tudo
         if (!selectedStatuses.includes(StatusDelivery.PENDING)) {
-          where['motoboy.id'] = userForRequest.id;
+          where.motoboyId = userForRequest.id;
         }
       } else {
-        where['motoboy.id'] = userForRequest.id;
+        where.motoboyId = userForRequest.id;
         where['status'] = { $ne: StatusDelivery.AWAITING_RELEASE };
       }
 
       if (queryParams.establishmentId)
-        where['establishment.id'] = queryParams.establishmentId;
+        where.establishmentId = queryParams.establishmentId;
     }
 
     //Lojistaadmin pode ver o mesmo que o lojista normal, unica diferença é que eles podem atribuir uma entrega ao motoboy
@@ -2792,9 +2803,9 @@ export class DeliveryService implements OnModuleInit {
       userForRequest.type === UserType.SHOPKEEPER ||
       userForRequest.type === UserType.SHOPKEEPERADMIN
     ) {
-      where['establishment.id'] = userForRequest.id;
+      where.establishmentId = userForRequest.id;
       if (selectedStatuses.length) where['status'] = { $in: selectedStatuses };
-      if (queryParams.motoboyId) where['motoboy.id'] = queryParams.motoboyId;
+      if (queryParams.motoboyId) where.motoboyId = queryParams.motoboyId;
     }
 
     // if (queryParams.hasOwnProperty('isActive')) {
