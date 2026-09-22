@@ -9,7 +9,8 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "generate-pwa-assets": "pwa-assets-generator --preset minimal public/logo.png",
-    "test:delivery-performance": "esbuild src/shared/utils/__tests__/deliveryPerformance.test.ts --bundle --platform=node --format=esm --outfile=/tmp/rappidex-deliveryPerformance.test.mjs && node --test /tmp/rappidex-deliveryPerformance.test.mjs"
+    "test:delivery-performance": "esbuild src/shared/utils/__tests__/deliveryPerformance.test.ts --bundle --platform=node --format=esm --outfile=/tmp/rappidex-deliveryPerformance.test.mjs && node --test /tmp/rappidex-deliveryPerformance.test.mjs",
+    "test": "npm run test:delivery-performance && esbuild src/shared/utils/__tests__/dashboardAsync.test.ts --bundle --platform=node --format=esm --outfile=/tmp/rappidex-dashboardAsync.test.mjs && node --test /tmp/rappidex-dashboardAsync.test.mjs"
   },
   "engines": {
     "npm": "9.6.7",
