@@ -69,6 +69,23 @@ function getStateLabel(value?: string) {
   return state ? state.label : value;
 }
 
+function formatCurrencyValue(value?: number | null) {
+  if (value === null || value === undefined) {
+    return "não configurado";
+  }
+
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return "não configurado";
+  }
+
+  return numericValue.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
 export function Cities() {
   const { token, permission } = useContext(DeliveryContext);
   const isSuperAdmin = permission === "superadmin";
@@ -158,12 +175,12 @@ export function Cities() {
     setSelectedState(city.state ?? "");
     setCityWhatsappMessage(city.clientWhatsappMessage ?? "");
     setDeliveryFeeValue(
-      city.deliveryFeeValue !== undefined
+      city.deliveryFeeValue != null
         ? String(city.deliveryFeeValue).replace(".", ",")
         : "",
     );
     setMonthlyFeeValue(
-      city.monthlyFeeValue !== undefined
+      city.monthlyFeeValue != null
         ? String(city.monthlyFeeValue).replace(".", ",")
         : "",
     );
@@ -408,21 +425,11 @@ export function Cities() {
                     <CityState>{getStateLabel(city.state)}</CityState>
                     <CityState>
                       Valor cobrado do estabelecimento por entrega:{" "}
-                      {city.deliveryFeeValue !== undefined
-                        ? city.deliveryFeeValue.toLocaleString("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          })
-                        : "não configurado"}
+                      {formatCurrencyValue(city.deliveryFeeValue)}
                     </CityState>
                     <CityState>
                       Valor da mensalidade:{" "}
-                      {city.monthlyFeeValue !== undefined
-                        ? city.monthlyFeeValue.toLocaleString("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          })
-                        : "não configurado"}
+                      {formatCurrencyValue(city.monthlyFeeValue)}
                     </CityState>
                     <CityState>
                       Valor pago ao entregador por entrega:{" "}
