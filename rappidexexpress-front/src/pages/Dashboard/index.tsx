@@ -1094,6 +1094,7 @@ export function Dashboard() {
       }
       deliveryParams.set("createdIn", adminCounterDateRange.start);
       deliveryParams.set("createdUntil", adminCounterDateRange.end);
+      deliveryParams.set("includeTotal", "false");
 
       const countsUrl = countsParams.toString()
         ? `/delivery/counts?${countsParams.toString()}`
@@ -1211,13 +1212,13 @@ export function Dashboard() {
       const [todayResponse, weekResponse, closedWeekResponse] =
         await Promise.all([
           api.get(
-            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${todayRange.start}&createdUntil=${todayRange.end}&itemsPerPage=${itemsPerPage}`,
+            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${todayRange.start}&createdUntil=${todayRange.end}&itemsPerPage=${itemsPerPage}&includeTotal=false`,
           ),
           api.get(
-            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${weekRange.start}&createdUntil=${weekRange.end}&itemsPerPage=${itemsPerPage}`,
+            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${weekRange.start}&createdUntil=${weekRange.end}&itemsPerPage=${itemsPerPage}&includeTotal=false`,
           ),
           api.get(
-            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${closedWeekRange.start}&createdUntil=${closedWeekRange.end}&itemsPerPage=${itemsPerPage}`,
+            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${closedWeekRange.start}&createdUntil=${closedWeekRange.end}&itemsPerPage=${itemsPerPage}&includeTotal=false`,
           ),
         ]);
 
@@ -1817,7 +1818,7 @@ export function Dashboard() {
 
     const motoboysPollingInterval = window.setInterval(() => {
       void getMotoboys();
-    }, 30000);
+    }, 300000);
 
     return () => {
       window.clearInterval(motoboysPollingInterval);

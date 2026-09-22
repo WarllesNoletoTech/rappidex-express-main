@@ -1,0 +1,25 @@
+HOTFIX PRODUCAO - RAPPIDEX - 22/09/2026
+
+Objetivo: aliviar saturacao do pool PostgreSQL/Supabase e impedir HTTP 500/H12 no dashboard.
+
+O que foi alterado:
+- /api/user/motoboys: agora retorna somente id e nome, sem consultar o historico de entregas.
+- /api/delivery/counts: quatro COUNTs paralelos foram substituidos por uma unica agregacao SQL.
+- contador do dashboard nao derruba a tela em caso de falha temporaria do banco.
+- frontend envia includeTotal=false nas listas do dashboard e desempenho do motoboy.
+- polling da lista de motoboys passou de 30s para 5min.
+- mantido DATABASE_POOL_MAX=5.
+- iFood, Menu Flow, autenticacao e dados nao foram alterados.
+
+DEPLOY BACKEND (PRIMEIRO):
+1) Entre na pasta rappidexexpress-back.
+2) Publique essa versao no Heroku rappidex-api.
+3) Confirme web.1: up.
+4) Acompanhe heroku logs --tail --app rappidex-api.
+
+DEPLOY FRONTEND (DEPOIS):
+Publique rappidexexpress-front na Vercel.
+
+IMPORTANTE:
+Nao execute npm run db:schema enquanto o sistema estiver em emergencia.
+Depois que o sistema estabilizar, rode o schema em horario de menor movimento para criar os indices novos.
