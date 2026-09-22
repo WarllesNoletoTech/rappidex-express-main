@@ -5,7 +5,7 @@ export interface City {
   state?: string;
   clientWhatsappMessage?: string;
   deliveryValue?: string;
-  deliveryFeeValue?: number | null;
-  monthlyFeeValue?: number | null;
+  deliveryFeeValue?: number;
+  monthlyFeeValue?: number;
   pixKey?: string;
 }
