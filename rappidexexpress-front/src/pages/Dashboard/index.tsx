@@ -20,10 +20,6 @@ import type {
   DeliveryPerformancePeriods,
 } from "../../shared/utils/deliveryPerformance";
 import {
-  createTrailingDebounce,
-  runWithLoader,
-} from "../../shared/utils/dashboardAsync";
-import {
   getLinkToWhatsapp,
   messageTypes,
 } from "../../shared/constants/whatsapp.constants";
@@ -380,18 +376,6 @@ const DeliveryCard = memo(function DeliveryCard({
 
         <ShopkeeperInfo>
           {isIfoodOrder && <IfoodStoreBadge>Loja iFood</IfoodStoreBadge>}
-<<<<<<< HEAD
-=======
-          {isMenuFlowOrder && <IfoodStoreBadge>MENU FLOW</IfoodStoreBadge>}
-          {isMenuFlowOrder && (
-            <p>
-              Pedido do Menu Flow{' '}
-              {menuFlowOrderNumber
-                ? `#${menuFlowOrderNumber.replace(/^#/, '')}`
-                : ''}
-            </p>
-          )}
->>>>>>> parent of 6db4bc2 (correção atualização)
           <p>{nomeLojaCard}</p>
 
           <Link
@@ -498,32 +482,6 @@ const DeliveryCard = memo(function DeliveryCard({
             </>
           )}
 
-<<<<<<< HEAD
-=======
-          {isMenuFlowOrder && (
-            <>
-              <InfoRow>
-                <InfoLabel>Origem</InfoLabel>
-                <InfoValue>Pedido do Menu Flow</InfoValue>
-              </InfoRow>
-              <InfoRow>
-                <InfoLabel>Pedido Menu Flow</InfoLabel>
-                <InfoValue>
-                  {menuFlowOrderNumber
-                    ? `#${menuFlowOrderNumber.replace(/^#/, "")}`
-                    : report.menuFlowOrderId || "Não informado"}
-                </InfoValue>
-              </InfoRow>
-              {report.menuFlowRestaurantName && (
-                <InfoRow>
-                  <InfoLabel>Loja Menu Flow</InfoLabel>
-                  <InfoValue>{report.menuFlowRestaurantName}</InfoValue>
-                </InfoRow>
-              )}
-            </>
-          )}
-
->>>>>>> parent of 6db4bc2 (correção atualização)
           <InfoRow>
             <InfoLabel>Cliente</InfoLabel>
             <InfoValue>{report.clientName || "Não informado"}</InfoValue>
@@ -590,82 +548,6 @@ const DeliveryCard = memo(function DeliveryCard({
           )}
         </InfoSection>
 
-<<<<<<< HEAD
-=======
-        {isMenuFlowOrder && (
-          <InfoSection>
-            <InfoRow>
-              <InfoLabel>Origem da entrega</InfoLabel>
-              <InfoValue>Menu Flow</InfoValue>
-            </InfoRow>
-            <InfoRow>
-              <InfoLabel>Valor dos produtos</InfoLabel>
-              <InfoValue>{formatMenuFlowMoney(report.menuFlowSubtotalCents)}</InfoValue>
-            </InfoRow>
-            <InfoRow>
-              <InfoLabel>Taxa de entrega</InfoLabel>
-              <InfoValue>{formatMenuFlowMoney(report.menuFlowDeliveryFeeCents)}</InfoValue>
-            </InfoRow>
-            {Boolean(report.menuFlowServiceFeeCents) && (
-              <InfoRow>
-                <InfoLabel>Taxa Menu Flow</InfoLabel>
-                <InfoValue>{formatMenuFlowMoney(report.menuFlowServiceFeeCents)}</InfoValue>
-              </InfoRow>
-            )}
-            {Boolean(report.menuFlowDiscountCents) && (
-              <InfoRow>
-                <InfoLabel>Desconto</InfoLabel>
-                <InfoValue>{formatMenuFlowMoney(report.menuFlowDiscountCents)}</InfoValue>
-              </InfoRow>
-            )}
-            <InfoRow>
-              <InfoLabel>Total do pedido</InfoLabel>
-              <InfoValue>{formatMenuFlowMoney(report.menuFlowTotalCents)}</InfoValue>
-            </InfoRow>
-            <InfoRow>
-              <InfoLabel>Pagamento</InfoLabel>
-              <InfoValue>{report.menuFlowPaymentMethod || report.payment || "Não informado"}</InfoValue>
-            </InfoRow>
-            {report.menuFlowPaymentMethod === "CASH" && (
-              <InfoRow>
-                <InfoLabel>Troco</InfoLabel>
-                <InfoValue>
-                  {report.menuFlowNeedsChange && report.menuFlowChangeForCents
-                    ? `Troco para ${formatMenuFlowMoney(report.menuFlowChangeForCents)}`
-                    : "Não precisa"}
-                </InfoValue>
-              </InfoRow>
-            )}
-            {Array.isArray(report.menuFlowItems) && report.menuFlowItems.length > 0 && (
-              <InfoRow>
-                <InfoLabel>Itens</InfoLabel>
-                <InfoValue>
-                  {report.menuFlowItems.map((item, index) => {
-                    const addons = (item.addons || [])
-                      .map((addon) => addon.name)
-                      .filter(Boolean)
-                      .join(", ");
-                    return (
-                      <div key={`${item.productName}-${index}`}>
-                        {item.quantity}x {item.productName} — {formatMenuFlowMoney(
-                          item.quantity *
-                            (item.unitPriceCents +
-                              (item.addons || []).reduce(
-                                (sum, addon) => sum + Number(addon.priceCents || 0),
-                                0,
-                              )),
-                        )}
-                        {addons ? ` • ${addons}` : ""}
-                      </div>
-                    );
-                  })}
-                </InfoValue>
-              </InfoRow>
-            )}
-          </InfoSection>
-        )}
-
->>>>>>> parent of 6db4bc2 (correção atualização)
         <InfoSection $variant="operational">
           <InfoRow>
             <InfoLabel>Criado</InfoLabel>
@@ -842,7 +724,6 @@ export function Dashboard() {
 
   const [status, setStatus] = useState<string>(`${StatusDelivery.PENDING}`);
   const [loading, setLoading] = useState<boolean>(true);
-  const [loadWarning, setLoadWarning] = useState<string>("");
   const [reports, setReports] = useState<Report[]>([]);
   const [deliveryPerformanceCounts, setDeliveryPerformanceCounts] =
     useState<DeliveryPerformancePeriods>({
@@ -889,7 +770,6 @@ export function Dashboard() {
     Record<string, string>
   >({});
   const [currentUserId, setCurrentUserId] = useState<string>("");
-  const [userContextReady, setUserContextReady] = useState(false);
   const [isCurrentUserMotoboy, setIsCurrentUserMotoboy] = useState<boolean>(
     permission === UserType.MOTOBOY,
   );
@@ -906,8 +786,8 @@ export function Dashboard() {
   const [adminCounterDateRange, setAdminCounterDateRange] = useState(
     () => defaultAdminCounterRange,
   );
+  const reloadTimeoutRef = useRef<number | null>(null);
   const refreshRequestIdRef = useRef(0);
-  const refreshAbortRef = useRef<AbortController | null>(null);
   const didFirstLoadRef = useRef(false);
   const deliveryGainTimeoutRef = useRef<number | null>(null);
   const earningToastRef = useRef<HTMLDivElement | null>(null);
@@ -1195,46 +1075,32 @@ export function Dashboard() {
   const refreshDashboard = useCallback(
     async (showLoader = false) => {
       const requestId = ++refreshRequestIdRef.current;
-      refreshAbortRef.current?.abort();
-      const abortController = new AbortController();
-      refreshAbortRef.current = abortController;
 
       if (showLoader) {
         setLoading(true);
       }
 
-      const countsParams = new URLSearchParams();
-      if (isCurrentUserSuperAdmin && currentCityId) {
-        countsParams.set("cityId", currentCityId);
-      }
-      countsParams.set("createdIn", adminCounterDateRange.start);
-      countsParams.set("createdUntil", adminCounterDateRange.end);
-
-      const deliveryParams = new URLSearchParams({ status });
-      if (isCurrentUserSuperAdmin && currentCityId) {
-        deliveryParams.set("cityId", currentCityId);
-      }
-      deliveryParams.set("createdIn", adminCounterDateRange.start);
-      deliveryParams.set("createdUntil", adminCounterDateRange.end);
-      deliveryParams.set("includeTotal", "false");
-
-      const countsUrl = countsParams.toString()
-        ? `/delivery/counts?${countsParams.toString()}`
-        : "/delivery/counts";
-
-      // Dispara as duas chamadas juntas, mas não deixa o contador financeiro
-      // bloquear a lista de pedidos. Com histórico grande no PostgreSQL,
-      // os COUNTs podem levar mais tempo que a consulta dos cards.
-      const deliveriesPromise = api.get(
-        `/delivery?${deliveryParams.toString()}`,
-        { signal: abortController.signal },
-      );
-      const countsPromise = api.get(countsUrl, {
-        signal: abortController.signal,
-      });
-
       try {
-        const currentResponse = await deliveriesPromise;
+        const countsParams = new URLSearchParams();
+        if (isCurrentUserSuperAdmin && currentCityId) {
+          countsParams.set("cityId", currentCityId);
+        }
+        countsParams.set("createdIn", adminCounterDateRange.start);
+        countsParams.set("createdUntil", adminCounterDateRange.end);
+
+        const deliveryParams = new URLSearchParams({ status });
+        if (isCurrentUserSuperAdmin && currentCityId) {
+          deliveryParams.set("cityId", currentCityId);
+        }
+
+        const countsUrl = countsParams.toString()
+          ? `/delivery/counts?${countsParams.toString()}`
+          : "/delivery/counts";
+
+        const [currentResponse, countsResponse] = await Promise.all([
+          api.get(`/delivery?${deliveryParams.toString()}`),
+          api.get(countsUrl),
+        ]);
 
         if (requestId !== refreshRequestIdRef.current) {
           return;
@@ -1243,39 +1109,12 @@ export function Dashboard() {
         const rawReports = Array.isArray(currentResponse.data?.data)
           ? currentResponse.data.data
           : [];
-
-        setReports(rawReports);
-        setLoadWarning("");
-      } catch (error: any) {
-        if (requestId !== refreshRequestIdRef.current) {
-          return;
-        }
-
-        if (error?.code !== "ERR_CANCELED") {
-          setLoadWarning(
-            "Não foi possível atualizar os dados. Tentando novamente.",
-          );
-        }
-      } finally {
-        // O spinner principal depende somente da lista de entregas.
-        // Os contadores podem terminar depois sem travar a tela inteira.
-        if (showLoader && requestId === refreshRequestIdRef.current) {
-          setLoading(false);
-        }
-      }
-
-      try {
-        const countsResponse = await countsPromise;
-
-        if (requestId !== refreshRequestIdRef.current) {
-          return;
-        }
-
         const nextPendingCount = Number(countsResponse.data?.pending) || 0;
         const nextAssignedCount = Number(countsResponse.data?.assigned) || 0;
         const nextWaitingReleaseCount =
           Number(countsResponse.data?.waitingRelease) || 0;
 
+        setReports(rawReports);
         setPendingCount(nextPendingCount);
         setAssignedCount(nextAssignedCount);
         setWaitingReleaseCount(nextWaitingReleaseCount);
@@ -1296,10 +1135,11 @@ export function Dashboard() {
           return;
         }
 
-        console.error(
-          "Erro ao carregar contadores do dashboard:",
-          error.response?.data?.message || error,
-        );
+        alert(error.response?.data?.message || "Erro ao carregar pedidos.");
+      } finally {
+        if (showLoader && requestId === refreshRequestIdRef.current) {
+          setLoading(false);
+        }
       }
     },
     [
@@ -1342,13 +1182,13 @@ export function Dashboard() {
       const [todayResponse, weekResponse, closedWeekResponse] =
         await Promise.all([
           api.get(
-            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${todayRange.start}&createdUntil=${todayRange.end}&itemsPerPage=${itemsPerPage}&includeTotal=false`,
+            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${todayRange.start}&createdUntil=${todayRange.end}&itemsPerPage=${itemsPerPage}`,
           ),
           api.get(
-            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${weekRange.start}&createdUntil=${weekRange.end}&itemsPerPage=${itemsPerPage}&includeTotal=false`,
+            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${weekRange.start}&createdUntil=${weekRange.end}&itemsPerPage=${itemsPerPage}`,
           ),
           api.get(
-            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${closedWeekRange.start}&createdUntil=${closedWeekRange.end}&itemsPerPage=${itemsPerPage}&includeTotal=false`,
+            `/delivery?status=${StatusDelivery.FINISHED}&createdIn=${closedWeekRange.start}&createdUntil=${closedWeekRange.end}&itemsPerPage=${itemsPerPage}`,
           ),
         ]);
 
@@ -1402,7 +1242,6 @@ export function Dashboard() {
       setCities(rawData as City[]);
     } catch (error) {
       console.error("Erro ao carregar cidades:", error);
-      setLoadWarning("Alguns dados auxiliares não puderam ser atualizados.");
     }
   }, []);
 
@@ -1414,7 +1253,6 @@ export function Dashboard() {
       setMotoboys(motoboysRes.data ?? []);
     } catch (error) {
       console.error("Erro ao carregar motoboys:", error);
-      setLoadWarning("Alguns dados auxiliares não puderam ser atualizados.");
     }
   }, [canManageReleaseOrder, permission]);
 
@@ -1477,8 +1315,6 @@ export function Dashboard() {
       setIsCurrentUserSuperAdmin(currentType === UserType.SUPERADMIN);
     } catch (error) {
       console.error("Erro ao carregar usuário atual:", error);
-    } finally {
-      setUserContextReady(true);
     }
   }, [permission]);
 
@@ -1926,20 +1762,10 @@ export function Dashboard() {
   );
 
   useEffect(() => {
-    if (!userContextReady) {
-      return;
-    }
-
-    void runWithLoader(() => refreshDashboard(false), setLoading).finally(
-      () => {
-        didFirstLoadRef.current = true;
-      },
-    );
-  }, [refreshDashboard, userContextReady]);
-
-  useEffect(() => {
-    return () => refreshAbortRef.current?.abort();
-  }, []);
+    void refreshDashboard(true).finally(() => {
+      didFirstLoadRef.current = true;
+    });
+  }, [refreshDashboard]);
 
   useEffect(() => {
     void getCities();
@@ -1956,7 +1782,7 @@ export function Dashboard() {
 
     const motoboysPollingInterval = window.setInterval(() => {
       void getMotoboys();
-    }, 300000);
+    }, 30000);
 
     return () => {
       window.clearInterval(motoboysPollingInterval);
@@ -1981,19 +1807,22 @@ export function Dashboard() {
     if (!currentCityId) return;
 
     const socket = io(SOCKET_URL, {
-      transports: ["polling", "websocket"],
-      upgrade: true,
-      reconnection: true,
-      timeout: 10000,
+      transports: ["websocket", "polling"],
     });
 
-    const reloadDeliveries = createTrailingDebounce(() => {
-      void Promise.all([
-        refreshDashboard(false),
-        getMotoboys(),
-        refreshDeliveryPerformance(),
-      ]);
-    }, 250);
+    const reloadDeliveries = () => {
+      if (reloadTimeoutRef.current) {
+        window.clearTimeout(reloadTimeoutRef.current);
+      }
+
+      reloadTimeoutRef.current = window.setTimeout(() => {
+        void Promise.all([
+          refreshDashboard(false),
+          getMotoboys(),
+          refreshDeliveryPerformance(),
+        ]);
+      }, 250);
+    };
 
     socket.on("connect", () => {
       socket.emit("join-city", currentCityId);
@@ -2004,7 +1833,9 @@ export function Dashboard() {
     socket.on("delivery:deleted", reloadDeliveries);
 
     return () => {
-      reloadDeliveries.cancel();
+      if (reloadTimeoutRef.current) {
+        window.clearTimeout(reloadTimeoutRef.current);
+      }
 
       socket.off("delivery:created", reloadDeliveries);
       socket.off("delivery:updated", reloadDeliveries);
@@ -2038,31 +1869,6 @@ export function Dashboard() {
 
   return (
     <Container>
-      {loadWarning && (
-        <div
-          role="status"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: "12px",
-            alignItems: "center",
-            padding: "12px 16px",
-            marginBottom: "12px",
-            borderRadius: "8px",
-            background: "rgba(245, 158, 11, 0.12)",
-            color: "#fbbf24",
-          }}
-        >
-          <span>{loadWarning}</span>
-          <button
-            type="button"
-            onClick={() => void refreshDashboard(true)}
-            style={{ cursor: "pointer", fontWeight: 700 }}
-          >
-            Tentar novamente
-          </button>
-        </div>
-      )}
       {deliveryGain && (
         <DeliveryGainToast
           ref={earningToastRef}

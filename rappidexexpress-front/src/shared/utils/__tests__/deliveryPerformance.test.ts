@@ -155,32 +155,32 @@ test("terça-feira inicia uma nova semana", () => {
 
 test("conta somente entregas finalizadas do motoboy e usa o valor da cidade", () => {
   const reports = [
-    report({ id: "start", finishedAt: "2026-06-02T00:00:00" }),
-    report({ id: "end", finishedAt: "2026-06-08T23:59:59.999" }),
-    report({ id: "previous-week", finishedAt: "2026-06-01T23:59:59.999" }),
-    report({ id: "next-week", finishedAt: "2026-06-09T00:00:00" }),
+    report({ id: "start", createdAt: "2026-06-02T00:00:00" }),
+    report({ id: "end", createdAt: "2026-06-08T23:59:59.999" }),
+    report({ id: "previous-week", createdAt: "2026-06-01T23:59:59.999" }),
+    report({ id: "next-week", createdAt: "2026-06-09T00:00:00" }),
     report({
       id: "canceled",
       status: StatusDelivery.CANCELED,
-      finishedAt: "2026-06-04T12:00:00",
+      createdAt: "2026-06-04T12:00:00",
     }),
     report({
       id: "in-route",
       status: StatusDelivery.ONCOURSE,
-      finishedAt: "2026-06-04T12:00:00",
+      createdAt: "2026-06-04T12:00:00",
     }),
     report({
       id: "other-motoboy",
       motoboyId: "motoboy-2",
-      finishedAt: "2026-06-04T12:00:00",
+      createdAt: "2026-06-04T12:00:00",
     }),
     report({
       id: "nested-motoboy",
       motoboyId: "",
       motoboy: { id: "motoboy-1" },
-      finishedAt: "2026-06-03T12:00:00",
+      createdAt: "2026-06-03T12:00:00",
     }),
-    report({ id: "no-finished-date", createdAt: "2026-06-03T12:00:00" }),
+    report({ id: "uses-created-date", createdAt: "2026-06-03T12:00:00" }),
   ];
 
   const performance = calculateDeliveryPerformance(
@@ -190,20 +190,20 @@ test("conta somente entregas finalizadas do motoboy e usa o valor da cidade", ()
     new Date(2026, 5, 8, 12),
   );
 
-  assert.deepEqual(performance.week, { count: 3, total: 25.5 });
+  assert.deepEqual(performance.week, { count: 4, total: 34 });
 });
 
-test("prioriza finishedAt e usa datas alternativas somente quando necessário", () => {
+test("usa createdAt no contador mesmo quando finishedAt está em outro dia", () => {
   const reports = [
     report({
-      id: "finished-at-wins",
-      finishedAt: "2026-06-01T12:00:00",
-      updatedAt: "2026-06-04T12:00:00",
+      id: "created-in-week-finished-before",
+      createdAt: "2026-06-02T10:00:00",
+      finishedAt: "2026-06-01T23:59:59.999",
     }),
     report({
-      id: "legacy-completed-at",
-      completedAt: "2026-06-04T12:00:00",
-      updatedAt: "2026-06-01T12:00:00",
+      id: "created-before-week-finished-in-week",
+      createdAt: "2026-06-01T23:50:00",
+      finishedAt: "2026-06-02T00:10:00",
     }),
   ];
 
