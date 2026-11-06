@@ -120,7 +120,6 @@ type DeliveryCardProps = {
   onCancel: (report: Report) => void;
   onNextStep: (report: Report) => void;
   onFinishFromIfood: (report: Report) => void;
-  onReconcileIfoodManually: (report: Report) => void;
   onDelete: (report: Report) => void;
   onDeliveryCodeChange: (reportId: string, value: string) => void;
   getButtonText: (currentStatus: string, report?: Report) => string;
@@ -280,7 +279,6 @@ const DeliveryCard = memo(function DeliveryCard({
   onCancel,
   onNextStep,
   onFinishFromIfood,
-  onReconcileIfoodManually,
   onDelete,
   onDeliveryCodeChange,
   getButtonText,
@@ -684,18 +682,7 @@ const DeliveryCard = memo(function DeliveryCard({
                   typebutton={true}
                   onClick={() => onFinishFromIfood(report)}
                 >
-                  Finalizar pelo iFood (super admin)
-                </OrderButton>
-              )}
-
-            {canFinishFromIfood &&
-              isIfoodOrder &&
-              report.status === StatusDelivery.AWAITING_CODE && (
-                <OrderButton
-                  typebutton={true}
-                  onClick={() => onReconcileIfoodManually(report)}
-                >
-                  Regularizar com comprovante (super admin)
+                  Finalizar no Rappidex (super admin)
                 </OrderButton>
               )}
 
@@ -1517,7 +1504,7 @@ export function Dashboard() {
     if (isDeliveryUpdating(report.id) || !isCurrentUserSuperAdmin) return;
 
     if (!window.confirm(
-      `Confirmar conclusão administrativa do pedido iFood ${report.ifoodDisplayId || report.id}?\n\nO Rappidex verificará se o iFood já concluiu o pedido. Não será enviada nova finalização ao iFood.`,
+      `Finalizar o pedido iFood ${report.ifoodDisplayId || report.id} somente no Rappidex?\n\nConfirme ANTES no Gestor iFood que ele está concluído. Esta ação NÃO consulta o status no iFood e NÃO envia uma finalização ao iFood.`,
     )) return;
 
     try {
@@ -1525,62 +1512,9 @@ export function Dashboard() {
       await api.post(`/delivery/${report.id}/finish-from-ifood`);
       await Promise.all([refreshDashboard(false), getMotoboys()]);
       void refreshDeliveryPerformance();
-      alert('Entrega finalizada no Rappidex após confirmação pelo iFood.');
+      alert('Entrega finalizada somente no Rappidex. Nenhuma alteração enviada ao iFood.');
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Não foi possível confirmar a conclusão no iFood.');
-    } finally {
-      stopUpdatingDelivery(report.id);
-    }
-  }
-
-  async function handlerReconcileIfoodManually(report: Report) {
-    if (isDeliveryUpdating(report.id) || !isCurrentUserSuperAdmin) return;
-
-    const displayId = String(report.ifoodDisplayId || getIfoodOrderNumber(report.observation) || '').trim();
-    if (!displayId) {
-      alert('Pedido sem número iFood visível. Verifique o vínculo antes da regularização.');
-      return;
-    }
-    const typedId = window.prompt(
-      `EXCEÇÃO SEM CONFIRMAÇÃO DA API.\n\nConfira no Gestor iFood se a entrega foi realmente concluída.\nDigite o número do pedido iFood (${displayId}) para confirmar que consultou o pedido correto:`,
-    );
-    if (typedId === null) return;
-    if (typedId.trim() !== displayId) {
-      alert('Número do pedido diferente. Nenhuma alteração realizada.');
-      return;
-    }
-    const evidenceReference = window.prompt(
-      'Referência do comprovante de conclusão (ex.: nome do print, protocolo do suporte ou registro do Gestor iFood). Mínimo 8 caracteres:',
-    );
-    if (evidenceReference === null) return;
-    const evidenceDescription = window.prompt(
-      'Descreva como confirmou a conclusão no Gestor iFood, incluindo data/hora e motivo da ausência do código (mín. 20 caracteres):',
-    );
-    if (evidenceDescription === null) return;
-    if (evidenceReference.trim().length < 8 || evidenceDescription.trim().length < 20) {
-      alert('Comprovante ou descrição insuficiente. Nenhuma alteração realizada.');
-      return;
-    }
-    if (!window.confirm(
-      `REGULARIZAÇÃO MANUAL DO PEDIDO ${displayId}\n\n` +
-      'Esta ação NÃO verifica a conclusão automaticamente no iFood.\n' +
-      'Você declara que conferiu a conclusão no Gestor iFood e possui o comprovante informado.\n\n' +
-      'Finalizar somente no Rappidex?'
-    )) return;
-
-    try {
-      startUpdatingDelivery(report.id);
-      await api.post(`/delivery/${report.id}/reconcile-ifood-manually`, {
-        ifoodDisplayId: typedId.trim(),
-        evidenceReference: evidenceReference.trim(),
-        evidenceDescription: evidenceDescription.trim(),
-        confirmedConcludedOnIfood: true,
-      });
-      await Promise.all([refreshDashboard(false), getMotoboys()]);
-      void refreshDeliveryPerformance();
-      alert('Entrega regularizada no Rappidex com registro de comprovação externa do Super Admin.');
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Regularização recusada. Nenhuma finalização foi confirmada.');
+      alert(error.response?.data?.message || 'Não foi possível finalizar a entrega no Rappidex.');
     } finally {
       stopUpdatingDelivery(report.id);
     }
@@ -2274,7 +2208,6 @@ export function Dashboard() {
                 onCancel={openCancelConfirmation}
                 onNextStep={handlerNextStep}
                 onFinishFromIfood={handlerFinishFromIfood}
-                onReconcileIfoodManually={handlerReconcileIfoodManually}
                 onDelete={openDeleteConfirmation}
                 onDeliveryCodeChange={handleDeliveryCodeChange}
                 getButtonText={getButtonText}
