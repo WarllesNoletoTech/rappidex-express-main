@@ -119,6 +119,7 @@ type DeliveryCardProps = {
   onSave: (report: Report) => void;
   onCancel: (report: Report) => void;
   onNextStep: (report: Report) => void;
+  onFinishFromIfood: (report: Report) => void;
   onDelete: (report: Report) => void;
   onDeliveryCodeChange: (reportId: string, value: string) => void;
   getButtonText: (currentStatus: string, report?: Report) => string;
@@ -130,6 +131,7 @@ type DeliveryCardProps = {
   previewObservation: string;
   shouldShowObservationPreview: boolean;
   canManageReleaseOrder: boolean;
+  canFinishFromIfood: boolean;
 };
 
 const hasActiveIfoodMerchant = (source: any): boolean => {
@@ -276,6 +278,7 @@ const DeliveryCard = memo(function DeliveryCard({
   onSave,
   onCancel,
   onNextStep,
+  onFinishFromIfood,
   onDelete,
   onDeliveryCodeChange,
   getButtonText,
@@ -287,6 +290,7 @@ const DeliveryCard = memo(function DeliveryCard({
   previewObservation,
   shouldShowObservationPreview,
   canManageReleaseOrder,
+  canFinishFromIfood,
 }: DeliveryCardProps) {
   const getClientVisualStatus = (delivery: Report) => {
     if (delivery.collectedAt) return "Motoboy está a caminho";
@@ -671,6 +675,17 @@ const DeliveryCard = memo(function DeliveryCard({
               </OrderButton>
             )}
 
+            {canFinishFromIfood &&
+              isIfoodOrder &&
+              report.status === StatusDelivery.AWAITING_CODE && (
+                <OrderButton
+                  typebutton={true}
+                  onClick={() => onFinishFromIfood(report)}
+                >
+                  Finalizar pelo iFood (super admin)
+                </OrderButton>
+              )}
+
             {!isMotoboy &&
               report.status === StatusDelivery.PENDING &&
               canShowCancelButton && (
@@ -714,6 +729,7 @@ function areDeliveryCardPropsEqual(
     prev.motoboys === next.motoboys &&
     prev.isUpdating === next.isUpdating &&
     prev.canManageReleaseOrder === next.canManageReleaseOrder &&
+    prev.canFinishFromIfood === next.canFinishFromIfood &&
     prev.previewObservation === next.previewObservation &&
     prev.shouldShowObservationPreview === next.shouldShowObservationPreview
   );
@@ -781,7 +797,7 @@ export function Dashboard() {
     permission === UserType.ADMIN || permission === UserType.SUPERADMIN,
   );
   const [isCurrentUserSuperAdmin, setIsCurrentUserSuperAdmin] =
-    useState<boolean>(permission === UserType.SUPERADMIN);
+    useState<boolean>(false);
   const defaultAdminCounterRange = useMemo(() => getRappidexWeekYmdRange(), []);
   const [adminCounterDateRange, setAdminCounterDateRange] = useState(
     () => defaultAdminCounterRange,
@@ -1484,6 +1500,26 @@ export function Dashboard() {
     }
   }
 
+  async function handlerFinishFromIfood(report: Report) {
+    if (isDeliveryUpdating(report.id) || !isCurrentUserSuperAdmin) return;
+
+    if (!window.confirm(
+      `Confirmar conclusão administrativa do pedido iFood ${report.ifoodDisplayId || report.id}?\n\nO Rappidex verificará se o iFood já concluiu o pedido. Não será enviada nova finalização ao iFood.`,
+    )) return;
+
+    try {
+      startUpdatingDelivery(report.id);
+      await api.post(`/delivery/${report.id}/finish-from-ifood`);
+      await Promise.all([refreshDashboard(false), getMotoboys()]);
+      void refreshDeliveryPerformance();
+      alert('Entrega finalizada no Rappidex após confirmação pelo iFood.');
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Não foi possível confirmar a conclusão no iFood.');
+    } finally {
+      stopUpdatingDelivery(report.id);
+    }
+  }
+
   async function handlerSave(report: Report) {
     if (isDeliveryUpdating(report.id)) {
       return;
@@ -2171,6 +2207,7 @@ export function Dashboard() {
                 onSave={handlerSave}
                 onCancel={openCancelConfirmation}
                 onNextStep={handlerNextStep}
+                onFinishFromIfood={handlerFinishFromIfood}
                 onDelete={openDeleteConfirmation}
                 onDeliveryCodeChange={handleDeliveryCodeChange}
                 getButtonText={getButtonText}
@@ -2184,6 +2221,7 @@ export function Dashboard() {
                   report.destinationObservationConfirmed,
                 )}
                 canManageReleaseOrder={canManageReleaseOrder}
+                canFinishFromIfood={isCurrentUserSuperAdmin}
               />
             ))}
           </>
