@@ -316,7 +316,7 @@ export function Profile(){
                         <ContainerButtons>
                             {(permission === 'shopkeeper' || permission === 'shopkeeperadmin') &&
                                 <NotificationButton type="button" onClick={() => navigate('/bairros')} backgroundColor={'gray-400'}>
-                                    Configurar bairros e taxas da loja
+                                    Consultar bairros e taxas da loja
                                 </NotificationButton>}
                             <NotificationButton
                                 type="button"
@@ -371,7 +371,7 @@ export function Profile(){
                             </ChangePasswordButton>
                         </ContainerButtons>
                     </FormContainer>
-                    {(permission === 'shopkeeper' || permission === 'shopkeeperadmin') && cityId && myUserId && <StoreRatesEditor cityId={cityId} storeId={myUserId} allowDirectSave heading="Bairros e taxas da cidade (somente consulta)"/>}
+                    {(permission === 'shopkeeper' || permission === 'shopkeeperadmin') && cityId && myUserId && <StoreRatesEditor cityId={cityId} storeId={myUserId} allowDirectSave heading="Bairros e taxas deste estabelecimento (consulta)"/>}
                 </>
             }
         </Container>

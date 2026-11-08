@@ -70,7 +70,7 @@ export function NewDelivery(){
             return
         }
         if(neighborhoodMode && !availableNeighborhoods.includes(addressNeighborhood)){
-            alert('Selecione um bairro ativo com taxa de entrega e repasse do motoboy cadastrados pela administração.')
+            alert('Selecione um bairro ativo com taxa de entrega e repasse do motoboy cadastrados pela administração para este estabelecimento.')
             setLoading(false)
             return
         }

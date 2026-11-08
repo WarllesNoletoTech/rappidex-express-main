@@ -177,7 +177,7 @@ export function NewUser() {
       }
       reset();
       setLoading(false);
-      alert("Novo usuário criado com sucesso!");
+      alert(isShopkeeperType ? "Loja criada com sucesso. Configure agora os bairros, a taxa de entrega e o repasse do motoboy na edição da loja ou em Cidades → Gerenciar bairros." : "Novo usuário criado com sucesso!");
     } catch (error: any) {
       setLoading(false);
       alert(error.response?.data?.message ?? error.message ?? "Não foi possível salvar o usuário.");
@@ -611,6 +611,7 @@ export function NewUser() {
           {isShopkeeperType && <StoreRatesEditor
             cityId={allowCitySelection ? selectedCityId : loggedUserCityId}
             storeId={user ? String(userId || '') || undefined : undefined}
+            allowDirectSave={permission === 'admin' || permission === 'superadmin'}
           />}
 
           {isShopkeeperType && (
