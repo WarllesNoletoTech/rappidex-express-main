@@ -30,6 +30,7 @@ export function Neighborhoods() {
   const [citySearch,setCitySearch] = useState('');
   const [sourceCities,setSourceCities] = useState<SourceCity[]>([]);
   const [sourceCityId,setSourceCityId] = useState('');
+  const [sourceProvider,setSourceProvider] = useState('');
   const [loadingSources,setLoadingSources] = useState(false);
   const [editingId,setEditingId] = useState<string|null>(null);
   const [editingName,setEditingName] = useState('');
@@ -83,20 +84,21 @@ export function Neighborhoods() {
     api.get(`/regions/${cityId}/neighborhoods/municipalities`,{params:{q}}).then(r=>{
       if(!active)return;
       const opts:SourceCity[]=r.data.options||[];
-      setSourceCities(opts);
+      setSourceCities(opts);setSourceProvider(r.data.source||'');
+      if(!opts.length)setMessage(r.data.warning || 'Não foram encontrados municípios. Revise o nome e o estado.');
       const linked=target.neighborhoodOsmSourceId;
       if(linked && opts.some(c=>c.id===linked))setSourceCityId(linked);
-    }).catch(()=>{if(active)setMessage('Não foi possível buscar as opções da cidade no mapa. Você pode pesquisar novamente ou cadastrar os bairros manualmente.');})
+    }).catch(()=>{if(active)setMessage('Não foi possível consultar os municípios no IBGE ou no mapa. Tente novamente ou cadastre manualmente.');})
     .finally(()=>{if(active)setLoadingSources(false)});
     return ()=>{active=false};
   },[admin,cityId,cities]);
-  async function searchSourceCities(){
+  async function searchSourceCities(provider?:'osm'){
     if(!cityId||citySearch.trim().length<2)return;
     setLoadingSources(true);setError('');setSourceCityId('');setSourceCities([]);
     try{
-      const response=await api.get(`/regions/${cityId}/neighborhoods/municipalities`,{params:{q:citySearch.trim()}});
-      setSourceCities(response.data.options||[]);
-      if(!(response.data.options||[]).length)setMessage(response.data.warning||'Nenhuma cidade encontrada.');
+      const response=await api.get(`/regions/${cityId}/neighborhoods/municipalities`,{params:{q:citySearch.trim(),...(provider?{provider}: {})}});
+      setSourceCities(response.data.options||[]);setSourceProvider(response.data.source||'');
+      setMessage(response.data.warning || ((response.data.options||[]).length ? 'Confira o nome e o estado antes de selecionar.' : 'Nenhuma cidade encontrada.'));
     }catch(err:any){setError(err.response?.data?.message||'Erro ao buscar cidades no mapa.');}
     finally{setLoadingSources(false);}
   }
@@ -117,6 +119,7 @@ export function Neighborhoods() {
       const result=response.data;
       setNeighborhoods(result.neighborhoods||[]);
       const selected=sourceCities.find(c=>c.id===sourceCityId);
+      if(!result.totalFound){setError(result.warning || 'Nenhum bairro encontrado pelas APIs. Você pode adicionar bairros manualmente.');return;}
       setCities(old=>old.map(c=>c.id===cityId?{...c,neighborhoodOsmSourceId:sourceCityId,neighborhoodOsmSourceLabel:selected?.label}:c));
       setMessage(result.added>0
         ? `${result.added} bairros importados de ${selected?.label||'cidade selecionada'} para a cidade no Rappidex. Os dados existentes foram preservados. ${result.warning||''}`
@@ -176,24 +179,26 @@ export function Neighborhoods() {
     {admin && <section className="rpx-card">
       <h2>Cadastro centralizado de bairros ({neighborhoods.length})</h2>
       {loadingNeighborhoods&&<div className="rpx-notice">Carregando os bairros cadastrados...</div>}
-      {!loadingNeighborhoods&&neighborhoods.length===0&&<div className="rpx-notice">Nenhum bairro cadastrado. Selecione a cidade de origem no mapa e confirme a sincronização. Também é possível adicionar bairros manualmente.</div>}
-      <p>Escolha a cidade correspondente no OpenStreetMap para vincular os bairros à cidade acima. A sincronização só adiciona bairros novos e preserva nomes editados, bairros desativados e tarifas existentes.</p>
+      {!loadingNeighborhoods&&neighborhoods.length===0&&<div className="rpx-notice">Nenhum bairro cadastrado. Selecione o município de origem no IBGE e confirme a sincronização. Também é possível adicionar bairros manualmente.</div>}
+      <p>Escolha o município correspondente no IBGE (ou no OpenStreetMap, se o IBGE estiver indisponível) para vincular os bairros à cidade acima. A consulta de bairros usa a API Overpass/OpenStreetMap, filtrada pelo limite geográfico do IBGE. A sincronização só adiciona bairros novos; nomes editados e tarifas existentes são preservados.</p>
       <div className="rpx-embedded" style={{marginBottom:14}}>
-        <label>Pesquisar cidade no OpenStreetMap (origem)</label>
+        <label>Pesquisar município no IBGE (origem)</label>
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
           <input style={{flex:'1 1 220px'}} value={citySearch} onChange={e=>setCitySearch(e.target.value)} placeholder="Ex.: Palmas, Tocantins, Brasil" />
-          <button className="rpx-small" disabled={loadingSources||citySearch.trim().length<2} onClick={searchSourceCities}>{loadingSources?'Pesquisando...':'Pesquisar cidades'}</button>
+          <button className="rpx-small" disabled={loadingSources||citySearch.trim().length<2} onClick={()=>void searchSourceCities()}>{loadingSources?'Pesquisando...':'Pesquisar cidades'}</button>
+          <button className="rpx-small" disabled={loadingSources||citySearch.trim().length<2} onClick={()=>void searchSourceCities('osm')}>Tentar fonte alternativa (OSM)</button>
         </div>
+        {sourceProvider&&<p><strong>Fonte de municípios:</strong> {sourceProvider}. Os bairros são consultados no OpenStreetMap.</p>}
         {selectedCity?.neighborhoodOsmSourceLabel&&<p><b>Origem vinculada anteriormente:</b> {selectedCity.neighborhoodOsmSourceLabel}</p>}
-        <label>Selecione a cidade correta encontrada no mapa</label>
+        <label>Selecione o município correto encontrado</label>
         <select value={sourceCityId} onChange={e=>setSourceCityId(e.target.value)} disabled={loadingSources||!sourceCities.length}>
-          <option value="">{loadingSources?'Buscando...':'Selecione uma cidade e confira o estado'}</option>
+          <option value="">{loadingSources?'Buscando...':'Selecione um município e confira a UF'}</option>
           {sourceCities.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}
         </select>
         <p><strong>Destino Rappidex:</strong> {selectedCity?.name} — {selectedCity?.state}<br/>
           <strong>Origem selecionada:</strong> {sourceCities.find(c=>c.id===sourceCityId)?.label||'Nenhuma cidade selecionada'}</p>
         <button className="rpx-small" disabled={!sourceCityId||searching||loadingSources||loadingNeighborhoods} onClick={syncOnline}>
-          {searching?'Sincronizando bairros...':'Sincronizar bairros da cidade selecionada'}
+          {searching?'Sincronizando bairros...':'Importar bairros do município selecionado'}
         </button>
       </div>
       <p style={{marginBottom:4}}>Adicionar bairros que faltarem (um por linha, vírgula ou ponto e vírgula):</p>
@@ -211,7 +216,7 @@ export function Neighborhoods() {
         <label className="rpx-check"><input type="checkbox" checked={n.active} onChange={e=>changeNeighborhood(n,{active:e.target.checked})}/>Ativo na cidade</label>
         {editingId!==n.id&&<button className="rpx-small" onClick={()=>{setEditingId(n.id);setEditingName(n.name);}}>Editar nome</button>}
       </div>)}</div>
-      <p>A taxa administrativa é cadastrada em Cidades. O repasse do entregador é calculado por pedido: <strong>tarifa da loja − taxa administrativa</strong>.</p>
+      <p>Dados de mapas: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a> e IBGE. A taxa administrativa é cadastrada em Cidades. O repasse do entregador é calculado por pedido: <strong>tarifa da loja − taxa administrativa</strong>.</p>
     </section>}
     <section className="rpx-card">
       <h2>Tarifas e cobertura da loja</h2>
