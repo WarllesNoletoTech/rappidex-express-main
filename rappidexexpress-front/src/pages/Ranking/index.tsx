@@ -17,6 +17,7 @@ export function Ranking(){
   const [currentWeek,setCurrentWeek] = useState('');
   const [board,setBoard] = useState<Score[]>([]);
   const [rules,setRules] = useState<Rule[]>([]);
+  const [rulesLoading,setRulesLoading] = useState(false);
   const [drivers,setDrivers] = useState<Driver[]>([]);
   const [entries,setEntries] = useState<Entry[]>([]);
   const [driverId,setDriverId] = useState('');
@@ -35,6 +36,7 @@ export function Ranking(){
   }).catch((e:any)=>setError(e.response?.data?.message||'Erro ao carregar cidades.'));},[token]);
   async function reload(currentCity=cityId,currentWeek=week){
     if(!currentCity)return;
+    setRulesLoading(true);
     const suffix=currentWeek?`?week=${encodeURIComponent(currentWeek)}`:'';
     try{
       const promises:any[]=[api.get(`/ranking/${currentCity}${suffix}`),api.get(`/ranking/${currentCity}/rules`)];
@@ -47,8 +49,9 @@ export function Ranking(){
       }
       if(admin){setDrivers(responses[2].data||[]);setEntries(responses[3].data||[]);}
     }catch(e:any){setError(e.response?.data?.message||'Falha ao carregar ranking.');}
+    finally{setRulesLoading(false);}
   }
-  useEffect(()=>{if(cityId){setWeek('');setCurrentWeek('');reload(cityId,'');}},[cityId]);
+  useEffect(()=>{if(cityId){setWeek('');setCurrentWeek('');setRules([]);reload(cityId,'');}},[cityId]);
   async function addPoints(){
     if(!driverId||!ruleId||!Number.isInteger(points)||points<1)return;
     setSaving(true);setError('');setNotice('');
@@ -62,6 +65,8 @@ export function Ranking(){
     try{await api.post(`/ranking/${cityId}/points/${id}/reverse`);await reload();}catch(e:any){setError(e.response?.data?.message||'Falha ao estornar.');}}
   function previousWeek(){const date=new Date(`${week}T12:00:00Z`);date.setUTCDate(date.getUTCDate()-7);const next=date.toISOString().slice(0,10);setWeek(next);reload(cityId,next);}
   function nextWeek(){const date=new Date(`${week}T12:00:00Z`);date.setUTCDate(date.getUTCDate()+7);const next=date.toISOString().slice(0,10);setWeek(next);reload(cityId,next);}
+  const orderedRules=[...rules].sort((a,b)=>a.order-b.order || a.title.localeCompare(b.title,'pt-BR'));
+  const activeCriteria=orderedRules.filter(r=>r.active);
   return <main className="rpx-page">
     <h1>🏆 Ranking semanal de entregadores</h1>
     <p>Pontuação manual, com regras editáveis e apenas os cinco primeiros colocados na classificação pública. Cada semana vai de terça-feira a segunda-feira (horário de Belém).</p>
@@ -71,6 +76,23 @@ export function Ranking(){
       <div className="rpx-inline"><button className="rpx-small" onClick={previousWeek} disabled={!week}>◀ Semana anterior</button><strong>{week?`Semana iniciada em ${new Date(`${week}T12:00:00Z`).toLocaleDateString('pt-BR',{timeZone:'UTC'})}`:'Semana atual'}</strong><button className="rpx-small" onClick={nextWeek} disabled={!week}>Próxima semana ▶</button></div>
       <h2>Top 5</h2>
       {board.length?board.map((s,i)=><div className="rpx-list-row" key={s.motoboyId}><strong className="rpx-medal">{['🥇','🥈','🥉','4º','5º'][i]}</strong><span>{s.name}</span><span className="rpx-score">{s.points} pontos</span></div>):<p>Nenhuma pontuação cadastrada para esta semana.</p>}
+    </section>
+    <section className="rpx-card rpx-criteria-card" aria-labelledby="rpx-ranking-criteria-title">
+      <div className="rpx-criteria-heading">
+        <h2 id="rpx-ranking-criteria-title">📋 Critérios de avaliação dos entregadores</h2>
+        <button type="button" className="rpx-small" onClick={()=>reload()} disabled={!cityId||rulesLoading}>
+          {rulesLoading?'Atualizando...':'Atualizar critérios'}
+        </button>
+      </div>
+      <p>Estas são as regras ativas da cidade selecionada. A administração atribui os pontos manualmente conforme os critérios; nenhuma regra gera pontuação automática.</p>
+      {week&&currentWeek&&week!==currentWeek&&
+        <p className="rpx-criteria-alert">As regras abaixo são as atuais e podem ser diferentes das utilizadas na semana consultada.</p>}
+      {rulesLoading?<p role="status">Carregando critérios de avaliação...</p>:
+        activeCriteria.length>0?
+          <ol className="rpx-criteria-list">
+            {activeCriteria.map(rule=><li key={rule.id} className="rpx-criteria-item">{rule.title}</li>)}
+          </ol>:
+          <p>Nenhum critério ativo cadastrado para esta cidade.</p>}
     </section>
     {admin&&<>
       <section className="rpx-card"><h2>Adicionar pontuação manual</h2>
@@ -83,12 +105,12 @@ export function Ranking(){
       <button disabled={saving||week!==currentWeek||!driverId||!ruleId||points<1||!Number.isInteger(points)} onClick={addPoints}>Adicionar pontos</button></section>
       <section className="rpx-card"><h2>Regras do ranking (editáveis)</h2>
         <p>Edite o texto, ative ou desative e altere a ordem. Lançamentos antigos mantêm o nome original da regra.</p>
-        {rules.sort((a,b)=>a.order-b.order).map((r,i)=><div key={r.id} className="rpx-list-row">
+        {orderedRules.map((r,i)=><div key={r.id} className="rpx-list-row">
           <span><b>{i+1}.</b> {r.title}</span>
           <label className="rpx-check"><input type="checkbox" checked={r.active} onChange={e=>editRule(r,{active:e.target.checked})}/>Ativa</label>
           <button className="rpx-small" onClick={()=>{const name=window.prompt('Editar critério:',r.title);if(name&&name.trim()!==r.title)editRule(r,{title:name});}}>Editar</button>
-          <button className="rpx-small" onClick={()=>{if(i>0)editRule(r,{order:rules[i-1].order});}} disabled={i===0} aria-label="Mover regra para cima">↑</button>
-          <button className="rpx-small" onClick={()=>{if(i<rules.length-1)editRule(r,{order:rules[i+1].order});}} disabled={i===rules.length-1} aria-label="Mover regra para baixo">↓</button>
+          <button className="rpx-small" onClick={()=>{if(i>0)editRule(r,{order:orderedRules[i-1].order});}} disabled={i===0} aria-label="Mover regra para cima">↑</button>
+          <button className="rpx-small" onClick={()=>{if(i<rules.length-1)editRule(r,{order:orderedRules[i+1].order});}} disabled={i===orderedRules.length-1} aria-label="Mover regra para baixo">↓</button>
         </div>)}
         <div className="rpx-inline"><input placeholder="Novo critério de avaliação" value={ruleName} onChange={e=>setRuleName(e.target.value)}/><button onClick={createRule} disabled={!ruleName.trim()}>Adicionar regra</button></div>
       </section>
