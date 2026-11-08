@@ -82,7 +82,6 @@ export function Cities() {
   const [cityWhatsappMessage, setCityWhatsappMessage] = useState("");
   const [deliveryFeeValue, setDeliveryFeeValue] = useState("");
   const [feeMode, setFeeMode] = useState<'fixed' | 'neighborhood'>('fixed');
-  const [platformServiceFee, setPlatformServiceFee] = useState('0,00');
   const [monthlyFeeValue, setMonthlyFeeValue] = useState("");
   const [deliveryValue, setDeliveryValue] = useState("");
   const [pixKey, setPixKey] = useState("");
@@ -151,7 +150,6 @@ export function Cities() {
     setCityWhatsappMessage("");
     setDeliveryFeeValue("");
     setFeeMode('fixed');
-    setPlatformServiceFee('0,00');
     setMonthlyFeeValue("");
     setDeliveryValue("");
     setPixKey("");
@@ -163,7 +161,6 @@ export function Cities() {
     setSelectedState(city.state ?? "");
     setCityWhatsappMessage(city.clientWhatsappMessage ?? "");
     setFeeMode(city.feeMode || 'fixed');
-    setPlatformServiceFee(String(city.platformServiceFee ?? 0).replace('.', ','));
     setDeliveryFeeValue(
       city.deliveryFeeValue !== undefined
         ? String(city.deliveryFeeValue).replace(".", ",")
@@ -218,7 +215,6 @@ export function Cities() {
       clientWhatsappMessage: cityWhatsappMessage.trim(),
       deliveryFeeValue: parseDeliveryFeeValue(deliveryFeeValue),
       feeMode,
-      platformServiceFee: parseDeliveryFeeValue(platformServiceFee) ?? 0,
       monthlyFeeValue: parseDeliveryFeeValue(monthlyFeeValue),
       deliveryValue: deliveryValue.trim(),
       pixKey: pixKey.trim(),
@@ -345,13 +341,7 @@ export function Cities() {
               <option value="fixed">Taxa fixa (modelo atual)</option>
               <option value="neighborhood">Taxa por bairro</option>
             </CitySelect>
-            {feeMode === 'neighborhood' && (
-              <>
-                <label>Taxa administrativa retida pelo Rappidex por entrega (R$)</label>
-                <CityInput value={platformServiceFee} onChange={(event) => setPlatformServiceFee(event.target.value)} placeholder="Ex.: 3,00" />
-                <p>Valor retido pelo Rappidex DENTRO da taxa total que o lojista repassa. O motoboy recebe a diferença entre a tarifa da loja e esta taxa administrativa.</p>
-              </>
-            )}
+            {feeMode === 'neighborhood' && <p>Cadastre os bairros e informe <b>taxa integral de entrega</b> e <b>repasse do motoboy</b> em Gerenciar bairros. Não existe taxa administrativa adicional.</p>}
             <CityInput
               style={{display: feeMode === 'fixed' ? undefined : 'none'}}
               placeholder="Valor cobrado do estabelecimento por entrega. Ex: 10,00"
@@ -437,13 +427,11 @@ export function Cities() {
                     <CityName>{city.name}</CityName>
                     <CityState>{getStateLabel(city.state)}</CityState>
                     <CityState>
-                      Modalidade: {city.feeMode === 'neighborhood' ? 'Por bairro' : 'Fixa'} — {city.feeMode === 'neighborhood' ? 'Taxa administrativa retida' : 'Valor cobrado do estabelecimento'}:{" "}
-                      {(city.feeMode === 'neighborhood' ? city.platformServiceFee : city.deliveryFeeValue) !== undefined
-                        ? Number(city.feeMode === 'neighborhood' ? city.platformServiceFee : city.deliveryFeeValue).toLocaleString("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          })
-                        : "não configurado"}
+                      Modalidade: {city.feeMode === 'neighborhood' ? 'Por bairro' : 'Fixa'} — {city.feeMode === 'neighborhood'
+                        ? 'Taxa integral e repasse definidos em Gerenciar bairros'
+                        : `Valor cobrado do estabelecimento: ${city.deliveryFeeValue != null
+                            ? Number(city.deliveryFeeValue).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
+                            : 'não configurado'}`}
                     </CityState>
                     <CityState>
                       Valor da mensalidade:{" "}
@@ -470,7 +458,7 @@ export function Cities() {
 
                   <CityState>
                     {city.feeMode === 'neighborhood'
-                      ? `${city.neighborhoodCount??0} bairro(s) cadastrado(s). Configure os bairros da cidade e os valores totais cobrados por cada loja.`
+                      ? `${city.neighborhoodCount??0} bairro(s) cadastrado(s). Configure as taxas de entrega e os repasses diretamente em Cidades → Gerenciar bairros.`
                       : 'O cadastro de bairros pode ser preparado antes de ativar a tarifa por bairro.'}
                   </CityState>
                   <CityCardActions>

@@ -371,7 +371,7 @@ export function Profile(){
                             </ChangePasswordButton>
                         </ContainerButtons>
                     </FormContainer>
-                    {(permission === 'shopkeeper' || permission === 'shopkeeperadmin') && cityId && myUserId && <StoreRatesEditor cityId={cityId} storeId={myUserId} allowDirectSave heading="Bairros e taxas do estabelecimento"/>}
+                    {(permission === 'shopkeeper' || permission === 'shopkeeperadmin') && cityId && myUserId && <StoreRatesEditor cityId={cityId} storeId={myUserId} allowDirectSave heading="Bairros e taxas da cidade (somente consulta)"/>}
                 </>
             }
         </Container>

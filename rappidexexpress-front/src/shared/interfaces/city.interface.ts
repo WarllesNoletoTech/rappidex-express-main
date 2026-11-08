@@ -7,10 +7,7 @@ export interface City {
   deliveryValue?: string;
   deliveryFeeValue?: number;
   feeMode?: 'fixed' | 'neighborhood';
-  platformServiceFee?: number;
   neighborhoodCount?: number;
-  neighborhoodOsmSourceId?: string;
-  neighborhoodOsmSourceLabel?: string;
   monthlyFeeValue?: number;
   pixKey?: string;
 }

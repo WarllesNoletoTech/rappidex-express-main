@@ -18,7 +18,7 @@ import {
   ResetPassButton,
 } from "./styles";
 import { Loader } from "../../components/Loader";
-import { StoreRatesEditor, ShopRateDraft } from "../../components/StoreRatesEditor";
+import { StoreRatesEditor } from "../../components/StoreRatesEditor";
 import "../regional-admin.css";
 
 const ProfileFormValidationSchema = zod.object({
@@ -62,7 +62,6 @@ export function NewUser() {
     ifoodMerchantId: "",
   });
   const [ifoodMerchants, setIfoodMerchants] = useState<IfoodMerchantForm[]>([]);
-  const [storeRateDraft, setStoreRateDraft] = useState<ShopRateDraft[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [loadingInfo, setLoadingInfo] = useState(false);
@@ -150,13 +149,6 @@ export function NewUser() {
       return;
     }
 
-    const configuredCity=cities.find(c=>c.id===cityIdToSubmit);
-    if ((selectedType==='shopkeeper'||selectedType==='shopkeeperadmin') && configuredCity?.feeMode==='neighborhood' &&
-      storeRateDraft.some(r=>r.cityActive&&r.enabled&&r.deliveryFee<Number(configuredCity.platformServiceFee||0))) {
-      alert('A tarifa integral de cada bairro atendido deve ser igual ou superior à taxa administrativa da cidade.');
-      setLoading(false);return;
-    }
-
     try {
       const response = await api.post("/user", {
         ...data,
@@ -174,22 +166,7 @@ export function NewUser() {
         ifoodMerchantId,
         ifoodMerchants: normalizedMerchants,
       });
-      // Gravar as tarifas escolhidas no próprio cadastro. Criação é mantida caso
-      // ocorra falha posterior na gravação das tarifas; informar claramente ao admin.
       const createdCompanyId = response?.data?.id;
-      if ((selectedType === 'shopkeeper' || selectedType === 'shopkeeperadmin') && storeRateDraft.length) {
-        if (!createdCompanyId) throw new Error('Loja criada, mas a API não retornou o ID para gravar as tarifas.');
-        try {
-          await api.put(`/regions/${cityIdToSubmit}/stores/${createdCompanyId}/rates`, {rates:storeRateDraft.map(r=>({
-            neighborhoodId:r.neighborhoodId,enabled:r.enabled&&r.cityActive,deliveryFee:r.deliveryFee,
-          }))});
-        } catch (ratesError:any) {
-          alert(`Loja criada, mas não foi possível salvar as tarifas dos bairros: ${ratesError.response?.data?.message||ratesError.message}. Abra a edição da loja para configurar.`);
-          setLoading(false);
-          navigate(`/novo-usuario/${data.user}`);
-          return;
-        }
-      }
       if (useIfoodIntegration && ifoodMerchantId) {
         if (createdCompanyId) {
           await api.post(`/ifood/sync-company/${createdCompanyId}`).catch(() => undefined);
@@ -264,19 +241,8 @@ export function NewUser() {
       setFormValues(nextValues);
       reset(nextValues);
       setSelectedType(response.data?.type || selectedType);
-      if (isShopkeeperType && storeRateDraft.length) {
-        try {
-          await api.put(`/regions/${cityIdToSubmit}/stores/${userId}/rates`, {rates:storeRateDraft.map(r=>({
-            neighborhoodId:r.neighborhoodId,enabled:r.enabled&&r.cityActive,deliveryFee:r.deliveryFee,
-          }))});
-        } catch (ratesError:any) {
-          setLoadingInfo(false);
-          alert(`Informações da loja salvas, mas as tarifas dos bairros NÃO foram gravadas: ${ratesError.response?.data?.message||ratesError.message}`);
-          return;
-        }
-      }
       setLoadingInfo(false);
-      alert("Informações do usuário e bairros salvos com sucesso!");
+      alert("Informações do usuário salvas com sucesso!");
     } catch (error: any) {
       setLoadingInfo(false);
       alert(error.response?.data?.message ?? "Não foi possível salvar as informações do usuário.");
@@ -645,7 +611,6 @@ export function NewUser() {
           {isShopkeeperType && <StoreRatesEditor
             cityId={allowCitySelection ? selectedCityId : loggedUserCityId}
             storeId={user ? String(userId || '') || undefined : undefined}
-            onChange={setStoreRateDraft}
           />}
 
           {isShopkeeperType && (

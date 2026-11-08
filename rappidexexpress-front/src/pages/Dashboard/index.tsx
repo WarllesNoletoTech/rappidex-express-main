@@ -2059,10 +2059,10 @@ export function Dashboard() {
               <span>Entregas da cidade</span>
               <strong>{adminFinancialCounts.totalEntregas}</strong>
             </PerformanceMetric>
-            <PerformanceMetric>
-              <span>{adminFinancialCounts.feeMode==='neighborhood'?'Taxa administrativa Rappidex':'Valor por entrega'}</span>
+            {adminFinancialCounts.feeMode!=='neighborhood' && <PerformanceMetric>
+              <span>Valor por entrega</span>
               <PerformanceValue>{formattedAdminDeliveryFee}</PerformanceValue>
-            </PerformanceMetric>
+            </PerformanceMetric>}
             <PerformanceMetric>
               <span>Total a receber{adminFinancialCounts.pendingFeeCount?' (parcial)':''}</span>
               <PerformanceValue>{formattedAdminTotal}</PerformanceValue>
@@ -2070,7 +2070,7 @@ export function Dashboard() {
             </PerformanceMetric>
             {adminFinancialCounts.feeMode==='neighborhood' && <>
               <PerformanceMetric>
-                <span>Receita administrativa (entregas concluídas)</span>
+                <span>Diferença entre valor da entrega e repasse (concluídas)</span>
                 <PerformanceValue>{moneyAmountDashboard(adminFinancialCounts.totalReceitaPlataforma||0)}</PerformanceValue>
               </PerformanceMetric>
               <PerformanceMetric>

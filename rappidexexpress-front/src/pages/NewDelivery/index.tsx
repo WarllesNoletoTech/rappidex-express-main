@@ -65,12 +65,12 @@ export function NewDelivery(){
 
         setLoading(true)
         if(ratesUnavailable){
-            alert('Não foi possível consultar as taxas da loja. Recarregue a página antes de solicitar uma entrega.')
+            alert('Não foi possível consultar os valores da cidade. Recarregue a página antes de solicitar uma entrega.')
             setLoading(false)
             return
         }
         if(neighborhoodMode && !availableNeighborhoods.includes(addressNeighborhood)){
-            alert('Selecione um bairro atendido pela loja e com repasse do motoboy configurado pela administração.')
+            alert('Selecione um bairro ativo com taxa de entrega e repasse do motoboy cadastrados pela administração.')
             setLoading(false)
             return
         }
@@ -139,7 +139,7 @@ export function NewDelivery(){
             if(canceled)return
             setRatesUnavailable(false)
             setNeighborhoodMode(response.data.feeMode==='neighborhood')
-            setAvailableNeighborhoods((response.data.rates||[]).filter((r:any)=>r.active&&r.enabled&&Number.isFinite(Number(r.deliveryFee))&&Number(r.deliveryFee)>=Number(response.data.platformServiceFee||0)).map((r:any)=>r.name))
+            setAvailableNeighborhoods((response.data.rates||[]).filter((r:any)=>r.active&&r.enabled&&r.deliveryFee!=null&&r.motoboyFee!=null&&Number.isFinite(Number(r.deliveryFee))&&Number.isFinite(Number(r.motoboyFee))&&Number(r.deliveryFee)>=Number(r.motoboyFee)).map((r:any)=>r.name))
         }).catch(()=>{if(!canceled){setRatesUnavailable(true);setAvailableNeighborhoods([])}})
         return () => {canceled=true}
     },[establishmentId,shopkeepers]);
