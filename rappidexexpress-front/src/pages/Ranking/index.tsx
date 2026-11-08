@@ -10,7 +10,7 @@ type Entry = {id:string;motoboyName:string;points:number;ruleTitleSnapshot:strin
 type Score = {position:number;motoboyId:string;name:string;points:number};
 export function Ranking(){
   const {token,permission} = useContext(DeliveryContext);
-  const admin = ['admin','superadmin'].includes(permission);
+  const admin = permission === 'admin' || permission === 'superadmin';
   const [cities,setCities] = useState<Array<{id:string;name:string;state?:string}>>([]);
   const [cityId,setCityId] = useState('');
   const [week,setWeek] = useState('');

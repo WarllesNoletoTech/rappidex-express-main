@@ -13,7 +13,7 @@ export function Neighborhoods() {
   const navigate=useNavigate();
   const {cityId:cityFromRoute}=useParams<{cityId:string}>();
   const {token, permission} = useContext(DeliveryContext);
-  const admin = ['admin','superadmin'].includes(permission);
+  const admin = permission === 'admin' || permission === 'superadmin';
   const [cities,setCities] = useState<Array<{id:string;name:string;state:string;feeMode?:string;platformServiceFee?:number}>>([]);
   const [cityId,setCityId] = useState('');
   const [currentUserId,setCurrentUserId] = useState('');
