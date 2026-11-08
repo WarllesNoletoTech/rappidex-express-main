@@ -26,6 +26,10 @@ export function Neighborhoods() {
   const [message,setMessage] = useState('');
   const [saving,setSaving] = useState(false);
   const [searching,setSearching] = useState(false);
+  const [autoImporting,setAutoImporting] = useState(false);
+  const [editingId,setEditingId] = useState<string|null>(null);
+  const [editingName,setEditingName] = useState('');
+  const [loadingNeighborhoods,setLoadingNeighborhoods] = useState(false);
   const [pending,setPending] = useState<Array<{id:string;clientName:string;storeName:string;addressNeighborhood:string;status:string}>>([]);
   const [resolveNeighborhood,setResolveNeighborhood] = useState<Record<string,string>>({});
   api.defaults.headers.Authorization = `Bearer ${token}`;
@@ -39,11 +43,41 @@ export function Neighborhoods() {
   },[token,cityFromRoute]);
   useEffect(()=>{
     if (!cityId) return;
+    let cancelled=false;
     setError('');setMessage('');setRates([]);setShops([]);
-    Promise.all([api.get(`/regions/${cityId}/neighborhoods`),admin?api.get(`/regions/${cityId}/stores`):Promise.resolve({data:[]}),admin?api.get(`/regions/${cityId}/pending-fees`):Promise.resolve({data:[]})])
-      .then(([n,s,p])=>{setPending(p.data||[]);setNeighborhoods(n.data.neighborhoods||[]);setShops(s.data||[]);
-        setShopId(old=>admin ? (s.data||[]).some((x:Store)=>x.id===old)?old:(s.data?.[0]?.id||'') : currentUserId);
-      }).catch((err:any)=>setError(err.response?.data?.message||'Erro ao carregar bairros.'));
+    setNeighborhoods([]);setLoadingNeighborhoods(true);
+    async function loadNeighborhoods(){
+      try {
+        const [n,s,p]=await Promise.all([
+          api.get(`/regions/${cityId}/neighborhoods`),
+          admin?api.get(`/regions/${cityId}/stores`):Promise.resolve({data:[]}),
+          admin?api.get(`/regions/${cityId}/pending-fees`):Promise.resolve({data:[]}),
+        ]);
+        let listed:Neighborhood[]=n.data.neighborhoods||[];
+        // Primeira abertura: consulta e cadastra automaticamente, sem substituir
+        // edições do administrador. Não faz solicitações se já existem bairros.
+        if(admin && n.data.feeMode==='neighborhood' && listed.length===0){
+          if(!cancelled)setAutoImporting(true);
+          try {
+            const imported=await api.post(`/regions/${cityId}/neighborhoods/auto-import`);
+            listed=imported.data.neighborhoods||[];
+            if(!cancelled)setMessage(imported.data.added>0
+              ? `${imported.data.added} bairros cadastrados automaticamente a partir do OpenStreetMap. Confira a lista e configure os repasses. ${imported.data.warning||''}`
+              : `A busca automática não encontrou novos bairros. ${imported.data.warning||'Você pode cadastrá-los manualmente.'}`);
+          }catch(err:any){
+            if(!cancelled)setMessage(`A importação automática não foi concluída: ${err.response?.data?.message||'serviço indisponível'}. É possível cadastrar manualmente ou sincronizar novamente.`);
+          }finally{if(!cancelled)setAutoImporting(false);}
+        }
+        if(cancelled)return;
+        setNeighborhoods(listed);setShops(s.data||[]);setPending(p.data||[]);
+        setShopId(old=>admin
+          ? (s.data||[]).some((x:Store)=>x.id===old)?old:(s.data?.[0]?.id||'')
+          : currentUserId);
+      }catch(err:any){if(!cancelled)setError(err.response?.data?.message||'Erro ao carregar bairros.');}
+      finally{if(!cancelled)setLoadingNeighborhoods(false);}
+    }
+    void loadNeighborhoods();
+    return ()=>{cancelled=true};
   },[cityId,admin,currentUserId]);
   useEffect(()=>{
     if (!cityId || !shopId) return;
@@ -52,15 +86,18 @@ export function Neighborhoods() {
   },[cityId,shopId]);
   const selectedCity = cities.find(x=>x.id===cityId);
   const enabled = useMemo(()=>rates.filter(r=>r.active&&r.enabled).length,[rates]);
-  async function searchOnline(){
+  async function syncOnline(){
+    if(!cityId)return;
     setSearching(true);setError('');setMessage('');
-    try{const response=await api.get(`/regions/${cityId}/neighborhoods/suggestions`);
-      const names=response.data.names||[];
-      setInput(prev=>[prev,...names].filter(Boolean).join('\n'));
-      setMessage(names.length
-        ? `${names.length} sugestões encontradas. Revise os nomes e clique em "Cadastrar / importar". A busca não salva automaticamente. ${response.data.warning||''}`
-        : `Nenhum bairro retornado pela consulta online. Adicione manualmente os bairros conhecidos, um por linha. ${response.data.warning||''}`);
-    }catch(e:any){setError(e.response?.data?.message||'Não foi possível pesquisar bairros online.');}
+    try{
+      const response=await api.post(`/regions/${cityId}/neighborhoods/auto-import`);
+      const result=response.data;
+      setNeighborhoods(result.neighborhoods||[]);
+      setMessage(result.added>0
+        ? `${result.added} novos bairros adicionados. Os bairros e valores já configurados foram preservados. ${result.warning||''}`
+        : `Nenhum bairro novo foi encontrado. ${result.warning||''}`);
+      if(shopId){const ratesResponse=await api.get(`/regions/${cityId}/stores/${shopId}/rates`);setRates(ratesResponse.data.rates||[]);}
+    }catch(err:any){setError(err.response?.data?.message||'Não foi possível sincronizar bairros.');}
     finally{setSearching(false);}
   }
   async function add() {
@@ -78,7 +115,8 @@ export function Neighborhoods() {
     try{const result=await api.put(`/regions/${cityId}/neighborhoods/${n.id}`,patch);
       setNeighborhoods(result.data.neighborhoods);
       if(shopId){const r=await api.get(`/regions/${cityId}/stores/${shopId}/rates`);setRates(r.data.rates);}
-    }catch(err:any){setError(err.response?.data?.message||'Erro ao alterar bairro.');}
+      return true;
+    }catch(err:any){setError(err.response?.data?.message||'Erro ao alterar bairro.');return false;}
   }
   async function resolveFee(id:string){
     if(!resolveNeighborhood[id])return;
@@ -107,13 +145,22 @@ export function Neighborhoods() {
     </section>
     {admin && <section className="rpx-card">
       <h2>Cadastro centralizado de bairros ({neighborhoods.length})</h2>
-      {neighborhoods.length===0&&<div className="rpx-notice">Esta cidade ainda não tem bairros cadastrados. Clique em <b>Buscar sugestões de bairros online</b>, confira o resultado e depois em <b>Cadastrar / importar</b>. Se a busca não retornar nomes, informe-os manualmente.</div>}
-      <p>Adicione bairros individualmente ou cole uma lista (um nome por linha, vírgula ou ponto e vírgula). Nomes repetidos são ignorados.</p>
+      {(loadingNeighborhoods||autoImporting)&&<div className="rpx-notice">Buscando automaticamente bairros da cidade e preparando o cadastro...</div>}
+      {!loadingNeighborhoods&&neighborhoods.length===0&&<div className="rpx-notice">Não há bairros cadastrados para esta cidade. Se a busca automática não trouxe resultados, use <b>Sincronizar bairros</b> ou adicione os nomes manualmente.</div>}
+      <p>Os bairros são importados automaticamente na primeira abertura desta tela, quando a cidade está no modo por bairro. Você pode sincronizar novamente, corrigir nomes, ativar/desativar ou adicionar bairros que faltarem. A importação não substitui configurações existentes.</p>
+      <button className="rpx-small" disabled={searching||autoImporting||loadingNeighborhoods} onClick={syncOnline}>{searching?'Sincronizando...':'Sincronizar bairros automaticamente (OSM)'}</button>
+      <p style={{marginBottom:4}}>Adicionar bairros que faltarem (um por linha, vírgula ou ponto e vírgula):</p>
       <textarea value={input} onChange={e=>setInput(e.target.value)} rows={3} placeholder={'Centro\nBacuri\nSanta Rita'}/>
-      <button className="rpx-small" disabled={searching} onClick={searchOnline}>{searching?'Buscando...':'Buscar sugestões de bairros online (OSM)'}</button>
-      <button onClick={add} disabled={saving||!input.trim()}>Cadastrar / importar nomes revisados</button>
+      <button onClick={add} disabled={saving||!input.trim()}>Adicionar bairros informados</button>
       <div className="rpx-list">{neighborhoods.map(n=><div className="rpx-list-row" key={n.id}>
-        <span><b>{n.name}</b><br/><small>Repasse do entregador é independente da taxa da loja.</small></span>
+        <span>{editingId===n.id?<>
+          <input aria-label={`Editar nome do bairro ${n.name}`} value={editingName} maxLength={110}
+            onChange={e=>setEditingName(e.target.value)} style={{maxWidth:250,marginRight:6}}/>
+          <button className="rpx-small" disabled={!editingName.trim()} onClick={async()=>{
+            if(await changeNeighborhood(n,{name:editingName.trim()}))setEditingId(null);
+          }}>Salvar nome</button>
+          <button className="rpx-small" onClick={()=>setEditingId(null)}>Cancelar</button>
+        </>:<b>{n.name}</b>}<br/><small>Repasse do entregador é independente da taxa da loja.</small></span>
         <label>Motoboy R$
           <input className="rpx-currency" aria-label={`Repasse ao motoboy para ${n.name}`} type="number" min="0" step="0.01" key={`${n.id}-${n.motoboyFee??'empty'}`} defaultValue={n.motoboyFee??''} placeholder="Definir" onBlur={e=>{
             const val=e.currentTarget.value.trim();
@@ -124,7 +171,7 @@ export function Neighborhoods() {
           }}/>
         </label>
         <label className="rpx-check"><input type="checkbox" checked={n.active} onChange={e=>changeNeighborhood(n,{active:e.target.checked})}/>Ativo na cidade</label>
-        <button className="rpx-small" onClick={()=>{const newName=window.prompt('Nome corrigido do bairro:',n.name);if(newName&&newName.trim()!==n.name)changeNeighborhood(n,{name:newName});}}>Editar</button>
+        {editingId!==n.id&&<button className="rpx-small" onClick={()=>{setEditingId(n.id);setEditingName(n.name);}}>Editar nome</button>}
       </div>)}</div>
       <p>Ao editar o campo <b>Motoboy R$</b>, clique fora dele para salvar. Sem repasse definido, novos pedidos do bairro ficam pendentes de configuração.</p>
     </section>}

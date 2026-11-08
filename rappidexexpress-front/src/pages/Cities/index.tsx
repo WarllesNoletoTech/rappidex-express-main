@@ -224,18 +224,26 @@ export function Cities() {
       pixKey: pixKey.trim(),
     };
 
+    const prior = cities.find(c=>String(c.id)===String(editingCityId));
+    const newNeighborhoodMode = feeMode === 'neighborhood' &&
+      (!editingCityId || prior?.feeMode !== 'neighborhood');
     setIsSubmitting(true);
     try {
+      let savedId = editingCityId;
       if (editingCityId) {
         await api.put(`/city/${editingCityId}`, payload);
         alert("Cidade atualizada com sucesso!");
       } else {
-        await api.post("/city", payload);
+        const created = await api.post("/city", payload);
+        savedId = created.data?.id ? String(created.data.id) : null;
         alert("Cidade cadastrada com sucesso!");
       }
 
       resetForm();
       await fetchCities();
+      // Ao cadastrar/ativar o modo bairro, abre o cadastro centralizado,
+      // que realiza a importação automática apenas se a cidade ainda estiver vazia.
+      if (newNeighborhoodMode && savedId) navigate(`/cidades/${savedId}/bairros`);
     } catch (error: any) {
       alert(
         error.response?.data?.message ?? "Não foi possível salvar a cidade.",
