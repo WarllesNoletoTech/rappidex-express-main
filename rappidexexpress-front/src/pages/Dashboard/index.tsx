@@ -456,10 +456,10 @@ const DeliveryCard = memo(function DeliveryCard({
             </InfoRow>
 
             <InfoRow>
-              <InfoLabel>Refrigerante</InfoLabel>
+              <InfoLabel>Bebida</InfoLabel>
               {isIfoodOrder ? (
                 <IfoodSodaWarning>
-                  Confirmar refrigerante com o estabelecimento
+                  Confirmar bebida com o estabelecimento
                 </IfoodSodaWarning>
               ) : (
                 <InfoValue>{report.soda || "Não informado"}</InfoValue>

@@ -99,7 +99,7 @@ export function EditDelivery() {
               <p>Forma de pagamento: {report.payment}</p>
               <p>Valor: R$ {report.value}</p>
               <p>Pix: {report.establishmentPix}</p>
-              <p>Refrigerante: {report.soda}</p>
+              <p>Bebida: {report.soda}</p>
               <p>Cliente: {report.clientName} </p>
             </ContainerOrder>
 

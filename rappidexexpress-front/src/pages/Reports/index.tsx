@@ -583,7 +583,7 @@ export function Reports() {
                   <p>Forma de pagamento: {report.payment}</p>
                   <p>Valor: R$ {report.value}</p>
                   <p>Pix: {report.establishmentPix}</p>
-                  <p>Refrigerante: {report.soda}</p>
+                  <p>Bebida: {report.soda}</p>
                   {observation && (
                     <p>
                       <b>Observação: {observation}</b>

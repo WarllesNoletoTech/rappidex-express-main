@@ -92,7 +92,8 @@ export function NewDelivery(){
                 ...(normalizedMotoboyId ? { motoboyId: normalizedMotoboyId } : {}),
                 payment,
                 soda,
-                addressNeighborhood,
+                // Somente cidades com tarifa por bairro precisam enviar o bairro.
+                ...(neighborhoodMode ? { addressNeighborhood } : {}),
                 observation,
             })
             reset()
@@ -207,13 +208,18 @@ export function NewDelivery(){
                         <option value="PAGO">Pago</option>
                     </select>
 
-                    <label htmlFor="addressNeighborhood">Bairro do destino (obrigatório em cidades com taxa por bairro):</label>
-                    {neighborhoodMode ? <select id="addressNeighborhood" value={addressNeighborhood} onChange={e=>setAddressNeighborhood(e.target.value)}>
-                        <option value="">Selecione o bairro atendido</option>
-                        {availableNeighborhoods.map(name=><option key={name} value={name}>{name}</option>)}
-                    </select> : <BaseInput id="addressNeighborhood" value={addressNeighborhood} onChange={e=>setAddressNeighborhood(e.target.value)} placeholder="Bairro do cliente" />}
-                    <label htmlFor="refrigerante">Tem refrigerante:</label>
+                    {neighborhoodMode && (
+                        <>
+                            <label htmlFor="addressNeighborhood">Bairro do destino:</label>
+                            <select id="addressNeighborhood" value={addressNeighborhood} onChange={e=>setAddressNeighborhood(e.target.value)} required>
+                                <option value="">Selecione o bairro atendido</option>
+                                {availableNeighborhoods.map(name=><option key={name} value={name}>{name}</option>)}
+                            </select>
+                        </>
+                    )}
+                    <label htmlFor="bebida">Tem bebida:</label>
                     <select 
+                        id="bebida"
                         value={soda}
                         onChange={e => setSoda(e.target.value)}
                     >
