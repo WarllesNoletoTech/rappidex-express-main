@@ -15,6 +15,7 @@ import { ChartLineUp, MapPin, Money, WhatsappLogo } from "phosphor-react";
 import { DeliveryContext } from "../../context/DeliveryContext";
 import api, { SOCKET_URL } from "../../services/api";
 import { City, Motoboy, Report } from "../../shared/interfaces";
+import { saveAdminSelectedCity } from "../../shared/utils/adminCitySelection";
 import type {
   DeliveryPerformance,
   DeliveryPerformancePeriods,
@@ -801,6 +802,9 @@ export function Dashboard() {
     permission === UserType.MOTOBOY,
   );
   const [currentCityId, setCurrentCityId] = useState<string>("");
+  const [currentAdminUserId, setCurrentAdminUserId] = useState<string>("");
+  const [savingSelectedCity, setSavingSelectedCity] = useState(false);
+  const [citySelectionError, setCitySelectionError] = useState("");
   const [canViewReleaseTab, setCanViewReleaseTab] = useState<boolean>(
     permission === UserType.ADMIN || permission === UserType.SUPERADMIN,
   );
@@ -1285,10 +1289,12 @@ export function Dashboard() {
       const response = await api.get("/user/myself");
       const currentUser = response.data?.data ?? response.data ?? {};
 
-      setCurrentUserId(currentUser.id ?? "");
-      setCurrentCityId(
-        (currentCity) => currentCity || currentUser.cityId || "",
-      );
+      setCurrentUserId(String(currentUser.id ?? ""));
+      setCurrentAdminUserId(String(currentUser.id ?? ""));
+      // Sempre recupera a cidade salva no perfil. É a mesma seleção da aba Cidades.
+      setCurrentCityId(String(
+        currentUser.cityId ?? currentUser.city?.id ?? currentUser.city?.cityId ?? "",
+      ));
 
       const currentType = String(
         currentUser.type || permission || "",
@@ -1341,6 +1347,39 @@ export function Dashboard() {
       console.error("Erro ao carregar usuário atual:", error);
     }
   }, [permission]);
+
+  async function handleAdminCityChange(nextCityId: string) {
+    if (!isCurrentUserSuperAdmin || savingSelectedCity) return;
+    if (nextCityId === currentCityId) return;
+
+    // Não permite trocar para a cidade vazia ou para um ID que não está na lista.
+    if (!nextCityId || !cities.some((city) => String(city.id) === nextCityId)) {
+      setCitySelectionError("Selecione uma cidade cadastrada no Rappidex.");
+      return;
+    }
+    if (!currentAdminUserId) {
+      setCitySelectionError("Não foi possível identificar o administrador logado.");
+      return;
+    }
+
+    setSavingSelectedCity(true);
+    setCitySelectionError("");
+    try {
+      // Alteração persistente: equivale a clicar em Selecionar na aba Cidades.
+      await saveAdminSelectedCity(currentAdminUserId, nextCityId);
+      setCurrentCityId(nextCityId);
+      // O efeito de refreshDashboard usa currentCityId para recarregar
+      // entregas, contadores e financeiro. O socket também troca de cidade.
+    } catch (error: any) {
+      setCitySelectionError(
+        error?.response?.data?.message ||
+        error?.message ||
+        "Não foi possível selecionar a cidade. Tente novamente.",
+      );
+    } finally {
+      setSavingSelectedCity(false);
+    }
+  }
 
   async function handleConfirmObservation() {
     if (!observationModalDeliveryId) return;
@@ -2052,6 +2091,10 @@ export function Dashboard() {
           <Money size={24} weight="duotone" aria-hidden="true" />
           <PerformanceMetrics>
             <PerformanceMetric>
+              <span>Entregas concluídas</span>
+              <PerformanceValue>{adminFinancialCounts.totalEntregas.toLocaleString("pt-BR")}</PerformanceValue>
+            </PerformanceMetric>
+            <PerformanceMetric>
               <span>Valor a receber{adminFinancialCounts.pendingFeeCount ? ' (parcial)' : ''}</span>
               <PerformanceValue>{formattedAdminTotal}</PerformanceValue>
             </PerformanceMetric>
@@ -2104,10 +2147,11 @@ export function Dashboard() {
             {isCurrentUserSuperAdmin && (
               <AdminCitySelect
                 value={currentCityId}
-                onChange={(event) => setCurrentCityId(event.target.value)}
-                aria-label="Selecionar cidade do contador administrativo"
+                onChange={(event) => { void handleAdminCityChange(event.target.value); }}
+                disabled={savingSelectedCity || !currentAdminUserId}
+                aria-label="Selecionar cidade do administrador"
               >
-                <option value="">Selecione a cidade</option>
+                <option value="" disabled>Selecione a cidade</option>
                 {cities.map((city) => (
                   <option key={city.id} value={city.id}>
                     {city.name}
@@ -2116,6 +2160,12 @@ export function Dashboard() {
               </AdminCitySelect>
             )}
           </AdminFilters>
+          {savingSelectedCity && <small role="status">Salvando cidade do administrador...</small>}
+          {citySelectionError && (
+            <small role="alert" style={{ color: "#facc15", fontWeight: 700 }}>
+              {citySelectionError}
+            </small>
+          )}
         </AdminFinancialCard>
       )}
 

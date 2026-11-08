@@ -6,6 +6,7 @@ import { DeliveryContext } from "../../context/DeliveryContext";
 import api from "../../services/api";
 import { Loader } from "../../components/Loader";
 import { City } from "../../shared/interfaces";
+import { saveAdminSelectedCity } from "../../shared/utils/adminCitySelection";
 import {
   Container,
   Content,
@@ -117,11 +118,12 @@ export function Cities() {
     setUserLoading(true);
     try {
       const response = await api.get("/user/myself");
-      setCurrentUser(response.data);
+      const user = response.data?.data ?? response.data ?? {};
+      setCurrentUser(user);
       const userCityId =
-        response.data?.cityId ??
-        response.data?.city?.id ??
-        response.data?.city?.cityId ??
+        user.cityId ??
+        user.city?.id ??
+        user.city?.cityId ??
         null;
       setSelectedCityId(userCityId ? String(userCityId) : null);
     } catch (error: any) {
@@ -273,21 +275,8 @@ export function Cities() {
     setUpdatingCityId(cityId);
 
     try {
-      const phoneOnlyDigits = (currentUser.phone ?? "")
-        .toString()
-        .replace(/\D/g, "");
-      const payload = {
-        name: currentUser.name ?? "",
-        phone: phoneOnlyDigits,
-        user: currentUser.user ?? "",
-        pix: currentUser.pix ?? "",
-        profileImage: currentUser.profileImage ?? "",
-        location: currentUser.location ?? "",
-        type: currentUser.type ?? "",
-        cityId,
-      };
-
-      await api.put(`/user/${currentUser.id}`, payload);
+      // Compartilha o mesmo procedimento de seleção do Dashboard.
+      await saveAdminSelectedCity(String(currentUser.id), cityId);
       setSelectedCityId(cityId);
       setCurrentUser((prev: any) => (prev ? { ...prev, cityId } : prev));
     } catch (error: any) {
