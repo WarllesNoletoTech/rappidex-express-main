@@ -310,6 +310,10 @@ export function Profile(){
                         />
 
                         <ContainerButtons>
+                            {(permission === 'shopkeeper' || permission === 'shopkeeperadmin') &&
+                                <NotificationButton type="button" onClick={() => navigate('/bairros')} backgroundColor={'gray-400'}>
+                                    Configurar bairros e taxas da loja
+                                </NotificationButton>}
                             <NotificationButton
                                 type="button"
                                 onClick={handleEnableNotification}

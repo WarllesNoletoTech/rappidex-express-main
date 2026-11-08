@@ -101,6 +101,8 @@ type AdminFinancialCounts = {
   totalEntregas: number;
   valorAdminPorEntrega: number;
   totalValorAdmin: number;
+  feeMode?: 'fixed' | 'neighborhood';
+  pendingFeeCount?: number;
   cityId?: string | null;
   cityName?: string | null;
   createdIn?: string | null;
@@ -1139,6 +1141,8 @@ export function Dashboard() {
           valorAdminPorEntrega:
             Number(countsResponse.data?.valorAdminPorEntrega) || 0,
           totalValorAdmin: Number(countsResponse.data?.totalValorAdmin) || 0,
+          feeMode: countsResponse.data?.feeMode || 'fixed',
+          pendingFeeCount: Number(countsResponse.data?.pendingFeeCount) || 0,
           cityId: countsResponse.data?.cityId ?? null,
           cityName: countsResponse.data?.cityName ?? null,
           createdIn:
@@ -2048,12 +2052,13 @@ export function Dashboard() {
               <strong>{adminFinancialCounts.totalEntregas}</strong>
             </PerformanceMetric>
             <PerformanceMetric>
-              <span>Valor por entrega</span>
+              <span>{adminFinancialCounts.feeMode==='neighborhood'?'Taxa adicional Rappidex':'Valor por entrega'}</span>
               <PerformanceValue>{formattedAdminDeliveryFee}</PerformanceValue>
             </PerformanceMetric>
             <PerformanceMetric>
-              <span>Total a receber</span>
+              <span>Total a receber{adminFinancialCounts.pendingFeeCount?' (parcial)':''}</span>
               <PerformanceValue>{formattedAdminTotal}</PerformanceValue>
+              {Boolean(adminFinancialCounts.pendingFeeCount)&&<small>{adminFinancialCounts.pendingFeeCount} entrega(s) aguardando definição do bairro</small>}
             </PerformanceMetric>
             <PerformanceMetric>
               <span>Cidade</span>

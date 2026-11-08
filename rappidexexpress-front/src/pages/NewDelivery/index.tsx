@@ -41,6 +41,10 @@ export function NewDelivery(){
     const [motoboyId, setMotoboyId] = useState('')
     const [payment, setPayment] = useState('')
     const [soda, setSoda] = useState('')
+    const [addressNeighborhood, setAddressNeighborhood] = useState('')
+    const [neighborhoodMode,setNeighborhoodMode] = useState(false)
+    const [ratesUnavailable,setRatesUnavailable] = useState(false)
+    const [availableNeighborhoods,setAvailableNeighborhoods] = useState<string[]>([])
 
     const profileFormData = useForm<DeliveryFormData>({
         resolver: zodResolver(DeliveryFormValidationSchema),
@@ -60,6 +64,16 @@ export function NewDelivery(){
         }
 
         setLoading(true)
+        if(ratesUnavailable){
+            alert('Não foi possível consultar as taxas da loja. Recarregue a página antes de solicitar uma entrega.')
+            setLoading(false)
+            return
+        }
+        if(neighborhoodMode && !availableNeighborhoods.includes(addressNeighborhood)){
+            alert('Selecione um bairro ativo e com tarifa configurada para esta loja.')
+            setLoading(false)
+            return
+        }
 
         if(data.clientPhone.includes('_')){
             alert("Numero de telefone está faltando algum digito!")
@@ -78,6 +92,7 @@ export function NewDelivery(){
                 ...(normalizedMotoboyId ? { motoboyId: normalizedMotoboyId } : {}),
                 payment,
                 soda,
+                addressNeighborhood,
                 observation,
             })
             reset()
@@ -93,7 +108,7 @@ export function NewDelivery(){
     const clientPhone = watch('clientPhone')
     const value = watch('value')
     const observation = watch('observation')
-    const isSubmitDisabled = !clientName || !clientPhone || !establishmentId || !value || !payment || !establishmentId
+    const isSubmitDisabled = ratesUnavailable || !clientName || !clientPhone || !establishmentId || !value || !payment || (neighborhoodMode && !availableNeighborhoods.includes(addressNeighborhood))
 
     async function getData(){
         try {
@@ -111,6 +126,23 @@ export function NewDelivery(){
             alert(error.response.data.message)
         }
     }
+
+    useEffect(()=>{
+        const shop=shopkeepers.find(x=>x.id===establishmentId)
+        let canceled=false
+        // Fail closed while loading rates and ignore results of a previously selected shop.
+        setRatesUnavailable(true)
+        setAvailableNeighborhoods([])
+        setAddressNeighborhood('')
+        if(!shop?.cityId)return () => {canceled=true}
+        api.get(`/regions/${shop.cityId}/stores/${shop.id}/rates`).then(response=>{
+            if(canceled)return
+            setRatesUnavailable(false)
+            setNeighborhoodMode(response.data.feeMode==='neighborhood')
+            setAvailableNeighborhoods((response.data.rates||[]).filter((r:any)=>r.active&&r.enabled).map((r:any)=>r.name))
+        }).catch(()=>{if(!canceled){setRatesUnavailable(true);setAvailableNeighborhoods([])}})
+        return () => {canceled=true}
+    },[establishmentId,shopkeepers]);
 
     useEffect(() => {
         if(shopkeepers.length === 1){
@@ -175,6 +207,11 @@ export function NewDelivery(){
                         <option value="PAGO">Pago</option>
                     </select>
 
+                    <label htmlFor="addressNeighborhood">Bairro do destino (obrigatório em cidades com taxa por bairro):</label>
+                    {neighborhoodMode ? <select id="addressNeighborhood" value={addressNeighborhood} onChange={e=>setAddressNeighborhood(e.target.value)}>
+                        <option value="">Selecione o bairro atendido</option>
+                        {availableNeighborhoods.map(name=><option key={name} value={name}>{name}</option>)}
+                    </select> : <BaseInput id="addressNeighborhood" value={addressNeighborhood} onChange={e=>setAddressNeighborhood(e.target.value)} placeholder="Bairro do cliente" />}
                     <label htmlFor="refrigerante">Tem refrigerante:</label>
                     <select 
                         value={soda}

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { FormEvent, useContext, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 
 import { DeliveryContext } from "../../context/DeliveryContext";
 import api from "../../services/api";
@@ -70,6 +70,7 @@ function getStateLabel(value?: string) {
 }
 
 export function Cities() {
+  const navigate = useNavigate();
   const { token, permission } = useContext(DeliveryContext);
   const isSuperAdmin = permission === "superadmin";
   const isCityAdmin = permission === "admin";
@@ -80,6 +81,8 @@ export function Cities() {
   const [selectedState, setSelectedState] = useState("");
   const [cityWhatsappMessage, setCityWhatsappMessage] = useState("");
   const [deliveryFeeValue, setDeliveryFeeValue] = useState("");
+  const [feeMode, setFeeMode] = useState<'fixed' | 'neighborhood'>('fixed');
+  const [platformServiceFee, setPlatformServiceFee] = useState('0,00');
   const [monthlyFeeValue, setMonthlyFeeValue] = useState("");
   const [deliveryValue, setDeliveryValue] = useState("");
   const [pixKey, setPixKey] = useState("");
@@ -147,6 +150,8 @@ export function Cities() {
     setSelectedState("");
     setCityWhatsappMessage("");
     setDeliveryFeeValue("");
+    setFeeMode('fixed');
+    setPlatformServiceFee('0,00');
     setMonthlyFeeValue("");
     setDeliveryValue("");
     setPixKey("");
@@ -157,6 +162,8 @@ export function Cities() {
     setCityName(city.name ?? "");
     setSelectedState(city.state ?? "");
     setCityWhatsappMessage(city.clientWhatsappMessage ?? "");
+    setFeeMode(city.feeMode || 'fixed');
+    setPlatformServiceFee(String(city.platformServiceFee ?? 0).replace('.', ','));
     setDeliveryFeeValue(
       city.deliveryFeeValue !== undefined
         ? String(city.deliveryFeeValue).replace(".", ",")
@@ -210,6 +217,8 @@ export function Cities() {
       state: selectedState,
       clientWhatsappMessage: cityWhatsappMessage.trim(),
       deliveryFeeValue: parseDeliveryFeeValue(deliveryFeeValue),
+      feeMode,
+      platformServiceFee: parseDeliveryFeeValue(platformServiceFee) ?? 0,
       monthlyFeeValue: parseDeliveryFeeValue(monthlyFeeValue),
       deliveryValue: deliveryValue.trim(),
       pixKey: pixKey.trim(),
@@ -323,7 +332,20 @@ export function Cities() {
               ))}
             </CitySelect>
 
+            <label>Modalidade de entrega da cidade</label>
+            <CitySelect value={feeMode} onChange={(event) => setFeeMode(event.target.value as 'fixed' | 'neighborhood')}>
+              <option value="fixed">Taxa fixa (modelo atual)</option>
+              <option value="neighborhood">Taxa por bairro</option>
+            </CitySelect>
+            {feeMode === 'neighborhood' && (
+              <>
+                <label>Taxa adicional da plataforma cobrada do lojista por entrega (R$)</label>
+                <CityInput value={platformServiceFee} onChange={(event) => setPlatformServiceFee(event.target.value)} placeholder="Ex.: 3,00" />
+                <p>Valor somado à tarifa do bairro configurada pela loja. O repasse ao motoboy permanece independente.</p>
+              </>
+            )}
             <CityInput
+              style={{display: feeMode === 'fixed' ? undefined : 'none'}}
               placeholder="Valor cobrado do estabelecimento por entrega. Ex: 10,00"
               value={deliveryFeeValue}
               onChange={(event) => setDeliveryFeeValue(event.target.value)}
@@ -407,9 +429,9 @@ export function Cities() {
                     <CityName>{city.name}</CityName>
                     <CityState>{getStateLabel(city.state)}</CityState>
                     <CityState>
-                      Valor cobrado do estabelecimento por entrega:{" "}
-                      {city.deliveryFeeValue !== undefined
-                        ? city.deliveryFeeValue.toLocaleString("pt-BR", {
+                      Modalidade: {city.feeMode === 'neighborhood' ? 'Por bairro' : 'Fixa'} — {city.feeMode === 'neighborhood' ? 'Tarifa adicional Rappidex' : 'Valor cobrado do estabelecimento'}:{" "}
+                      {(city.feeMode === 'neighborhood' ? city.platformServiceFee : city.deliveryFeeValue) !== undefined
+                        ? Number(city.feeMode === 'neighborhood' ? city.platformServiceFee : city.deliveryFeeValue).toLocaleString("pt-BR", {
                             style: "currency",
                             currency: "BRL",
                           })
@@ -440,7 +462,19 @@ export function Cities() {
                     </CityMessage>
                   </CityInfo>
 
+                  <CityState>
+                    {city.feeMode === 'neighborhood'
+                      ? 'Cadastre os bairros da cidade e, em seguida, configure as tarifas de cada loja.'
+                      : 'O cadastro de bairros pode ser preparado antes de ativar a tarifa por bairro.'}
+                  </CityState>
                   <CityCardActions>
+                    <CityActionButton
+                      type="button"
+                      onClick={() => navigate(`/cidades/${cityId}/bairros`)}
+                      disabled={!cityId}
+                    >
+                      Gerenciar bairros
+                    </CityActionButton>
                     {isSuperAdmin && (
                       <CityActionButton
                         type="button"

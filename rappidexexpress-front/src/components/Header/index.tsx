@@ -9,6 +9,7 @@ import {
   FilePlus,
   UserPlus,
   MapPin,
+  Trophy,
   Storefront,
   List,
   X,
@@ -92,6 +93,12 @@ export function Header() {
             <MapPin size={24} />
           </NavLink>
         )}
+        <NavLink to="/ranking" title="Ranking semanal">
+          <Trophy size={24} />
+        </NavLink>
+        {canCreateDelivery && !canAccessCities && <NavLink to="/bairros" title="Bairros e taxas">
+          <MapPin size={24} />
+        </NavLink>}
         {canCreateDelivery && (
           <NavLink to="/nova-entrega" title="Nova entrega">
             <FilePlus size={24} />
@@ -157,6 +164,12 @@ export function Header() {
                     <span>Cidades</span>
                   </MobileMenuLink>
                 )}
+                <MobileMenuLink to="/ranking" onClick={closeMobileMenu}>
+                  <Trophy size={21} /><span>Ranking semanal</span>
+                </MobileMenuLink>
+                {canCreateDelivery && !canAccessCities && <MobileMenuLink to="/bairros" onClick={closeMobileMenu}>
+                  <MapPin size={21} /><span>Bairros e taxas</span>
+                </MobileMenuLink>}
                 {canCreateDelivery && (
                   <MobileMenuLink to="/nova-entrega" onClick={closeMobileMenu}>
                     <FilePlus size={21} />

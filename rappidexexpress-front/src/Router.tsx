@@ -16,6 +16,8 @@ import { EditDelivery } from "./pages/EditDelivery";
 import { Config } from "./pages/Config";
 import { Users } from "./pages/Users";
 import { Cities } from "./pages/Cities";
+import { Ranking } from "./pages/Ranking";
+import { Neighborhoods } from "./pages/Neighborhoods";
 import { IfoodClients } from "./pages/IfoodClients";
 import { TermsOfUse } from "./pages/TermsOfUse";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
@@ -41,11 +43,17 @@ export function Router() {
           <Route path="/editar-entrega" element={<EditDelivery />} />
           <Route path="/configuracao" element={<Config />} />
           <Route path="/usuarios" element={<Users />} />
+          <Route path="/ranking" element={<Ranking />} />
+          {['admin','superadmin','shopkeeper','shopkeeperadmin'].includes(permission || '') &&
+            <Route path="/bairros" element={<Neighborhoods />} />}
           {(permission === "admin" || permission === "superadmin") && (
             <Route path="/clientes-ifood" element={<IfoodClients />} />
           )}
           {(permission === "admin" || permission === "superadmin") && (
-            <Route path="/cidades" element={<Cities />} />
+            <>
+              <Route path="/cidades" element={<Cities />} />
+              <Route path="/cidades/:cityId/bairros" element={<Neighborhoods />} />
+            </>
           )}
         </Route>
       )}
