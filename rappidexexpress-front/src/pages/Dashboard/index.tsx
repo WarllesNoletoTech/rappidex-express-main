@@ -107,6 +107,7 @@ type AdminFinancialCounts = {
   totalRepasseMotoboys?: number;
   feeMode?: 'fixed' | 'neighborhood';
   pendingFeeCount?: number;
+  pendingPayoutCount?: number;
   cityId?: string | null;
   cityName?: string | null;
   createdIn?: string | null;
@@ -769,6 +770,8 @@ export function Dashboard() {
       totalValorAdmin: 0,
       totalReceitaPlataforma: 0,
       totalRepasseMotoboys: 0,
+      pendingFeeCount: 0,
+      pendingPayoutCount: 0,
       cityId: null,
       cityName: null,
       createdIn: null,
@@ -950,14 +953,6 @@ export function Dashboard() {
   );
   const isAdminDashboardUser =
     permission === UserType.ADMIN || permission === UserType.SUPERADMIN;
-  const formattedAdminDeliveryFee = useMemo(
-    () =>
-      adminFinancialCounts.valorAdminPorEntrega.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-      }),
-    [adminFinancialCounts.valorAdminPorEntrega],
-  );
   const formattedAdminTotal = useMemo(
     () =>
       adminFinancialCounts.totalValorAdmin.toLocaleString("pt-BR", {
@@ -1151,6 +1146,7 @@ export function Dashboard() {
           totalRepasseMotoboys: Number(countsResponse.data?.totalRepasseMotoboys) || 0,
           feeMode: countsResponse.data?.feeMode || 'fixed',
           pendingFeeCount: Number(countsResponse.data?.pendingFeeCount) || 0,
+          pendingPayoutCount: Number(countsResponse.data?.pendingPayoutCount) || 0,
           cityId: countsResponse.data?.cityId ?? null,
           cityName: countsResponse.data?.cityName ?? null,
           createdIn:
@@ -2056,35 +2052,26 @@ export function Dashboard() {
           <Money size={24} weight="duotone" aria-hidden="true" />
           <PerformanceMetrics>
             <PerformanceMetric>
-              <span>Entregas da cidade</span>
-              <strong>{adminFinancialCounts.totalEntregas}</strong>
-            </PerformanceMetric>
-            {adminFinancialCounts.feeMode!=='neighborhood' && <PerformanceMetric>
-              <span>Valor por entrega</span>
-              <PerformanceValue>{formattedAdminDeliveryFee}</PerformanceValue>
-            </PerformanceMetric>}
-            <PerformanceMetric>
-              <span>Total a receber{adminFinancialCounts.pendingFeeCount?' (parcial)':''}</span>
+              <span>Valor a receber{adminFinancialCounts.pendingFeeCount ? ' (parcial)' : ''}</span>
               <PerformanceValue>{formattedAdminTotal}</PerformanceValue>
-              {Boolean(adminFinancialCounts.pendingFeeCount)&&<small>{adminFinancialCounts.pendingFeeCount} entrega(s) aguardando definição do bairro</small>}
             </PerformanceMetric>
-            {adminFinancialCounts.feeMode==='neighborhood' && <>
-              <PerformanceMetric>
-                <span>Diferença entre valor da entrega e repasse (concluídas)</span>
-                <PerformanceValue>{moneyAmountDashboard(adminFinancialCounts.totalReceitaPlataforma||0)}</PerformanceValue>
-              </PerformanceMetric>
-              <PerformanceMetric>
-                <span>Repasse aos motoboys (entregas concluídas)</span>
-                <PerformanceValue>{moneyAmountDashboard(adminFinancialCounts.totalRepasseMotoboys||0)}</PerformanceValue>
-              </PerformanceMetric>
-            </>}
             <PerformanceMetric>
-              <span>Cidade</span>
-              <strong>
-                {adminFinancialCounts.cityName || "Não selecionada"}
-              </strong>
+              <span>Repasse aos motoboys{(adminFinancialCounts.pendingFeeCount || adminFinancialCounts.pendingPayoutCount) ? ' (parcial)' : ''}</span>
+              <PerformanceValue>{moneyAmountDashboard(adminFinancialCounts.totalRepasseMotoboys || 0)}</PerformanceValue>
+            </PerformanceMetric>
+            <PerformanceMetric>
+              <span>Saldo da administração{(adminFinancialCounts.pendingFeeCount || adminFinancialCounts.pendingPayoutCount) ? ' (parcial)' : ''}</span>
+              <PerformanceValue>{moneyAmountDashboard(adminFinancialCounts.totalReceitaPlataforma || 0)}</PerformanceValue>
+              <small>Após descontar os repasses previstos, antes de outras despesas.</small>
             </PerformanceMetric>
           </PerformanceMetrics>
+          {Boolean(adminFinancialCounts.pendingFeeCount || adminFinancialCounts.pendingPayoutCount) && (
+            <small role="status" style={{color:'#facc15',fontWeight:600}}>
+              {Boolean(adminFinancialCounts.pendingFeeCount) && `${adminFinancialCounts.pendingFeeCount} entrega(s) com tarifa pendente. `}
+              {Boolean(adminFinancialCounts.pendingPayoutCount) && `${adminFinancialCounts.pendingPayoutCount} entrega(s) sem repasse histórico definido. `}
+              Os totais são parciais até a regularização.
+            </small>
+          )}
           <AdminFilters>
             <label>
               Início
