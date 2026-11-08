@@ -29,11 +29,22 @@ export function Ranking(){
   const [error,setError] = useState('');
   const [notice,setNotice] = useState('');
   api.defaults.headers.Authorization=`Bearer ${token}`;
-  useEffect(()=>{Promise.all([api.get('/city'),api.get('/user/myself')]).then(([c,u])=>{
-    const list=Array.isArray(c.data?.data)?c.data.data:c.data;
-    setCities(Array.isArray(list)?list:[]);
-    setCityId(u.data.cityId||list?.[0]?.id||'');
-  }).catch((e:any)=>setError(e.response?.data?.message||'Erro ao carregar cidades.'));},[token]);
+  useEffect(()=>{
+    if(!token)return;
+    // Motoboys visualizam somente o ranking da cidade vinculada, sem seletor de cidades.
+    if(!admin){
+      api.get('/user/myself',{headers:{Authorization:`Bearer ${token}`}})
+        .then(u=>{const me=u.data?.data||u.data;setCityId(me.cityId||'');})
+        .catch((e:any)=>setError(e.response?.data?.message||'Erro ao carregar ranking.'));
+      return;
+    }
+    Promise.all([api.get('/city'),api.get('/user/myself')]).then(([c,u])=>{
+      const list=Array.isArray(c.data?.data)?c.data.data:c.data;
+      setCities(Array.isArray(list)?list:[]);
+      const me=u.data?.data||u.data;
+      setCityId(me.cityId||list?.[0]?.id||'');
+    }).catch((e:any)=>setError(e.response?.data?.message||'Erro ao carregar cidades.'));
+  },[token,admin]);
   async function reload(currentCity=cityId,currentWeek=week){
     if(!currentCity)return;
     setRulesLoading(true);
@@ -72,7 +83,7 @@ export function Ranking(){
     <p>Pontuação manual, com regras editáveis e apenas os cinco primeiros colocados na classificação pública. Cada semana vai de terça-feira a segunda-feira (horário de Belém).</p>
     {error&&<div className="rpx-error" role="alert">{error}</div>}{notice&&<div className="rpx-notice">{notice}</div>}
     <section className="rpx-card">
-      <label>Cidade</label><select value={cityId} onChange={e=>setCityId(e.target.value)}>{cities.map(c=><option key={c.id} value={c.id}>{c.name} — {c.state}</option>)}</select>
+      {admin&&<><label htmlFor="ranking-city">Cidade</label><select id="ranking-city" value={cityId} onChange={e=>setCityId(e.target.value)}>{cities.map(c=><option key={c.id} value={c.id}>{c.name} — {c.state}</option>)}</select></>}
       <div className="rpx-inline"><button className="rpx-small" onClick={previousWeek} disabled={!week}>◀ Semana anterior</button><strong>{week?`Semana iniciada em ${new Date(`${week}T12:00:00Z`).toLocaleDateString('pt-BR',{timeZone:'UTC'})}`:'Semana atual'}</strong><button className="rpx-small" onClick={nextWeek} disabled={!week}>Próxima semana ▶</button></div>
       <h2>Top 5</h2>
       {board.length?board.map((s,i)=><div className="rpx-list-row" key={s.motoboyId}><strong className="rpx-medal">{['🥇','🥈','🥉','4º','5º'][i]}</strong><span>{s.name}</span><span className="rpx-score">{s.points} pontos</span></div>):<p>Nenhuma pontuação cadastrada para esta semana.</p>}
@@ -84,7 +95,7 @@ export function Ranking(){
           {rulesLoading?'Atualizando...':'Atualizar critérios'}
         </button>
       </div>
-      <p>Estas são as regras ativas da cidade selecionada. A administração atribui os pontos manualmente conforme os critérios; nenhuma regra gera pontuação automática.</p>
+      <p>Estas são as regras ativas de avaliação. A administração atribui os pontos manualmente conforme os critérios; nenhuma regra gera pontuação automática.</p>
       {week&&currentWeek&&week!==currentWeek&&
         <p className="rpx-criteria-alert">As regras abaixo são as atuais e podem ser diferentes das utilizadas na semana consultada.</p>}
       {rulesLoading?<p role="status">Carregando critérios de avaliação...</p>:

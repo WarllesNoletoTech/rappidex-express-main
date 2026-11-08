@@ -231,11 +231,11 @@ export function Profile(){
     }, [])
 
     useEffect(() => {
-        if (!cityDisplay && cityId) {
+        if (permission !== 'motoboy' && !cityDisplay && cityId) {
             resolveCityDisplay(cityId)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [cityDisplay, cityId])
+    }, [cityDisplay, cityId, permission])
 
     return (
         <Container>
@@ -303,15 +303,17 @@ export function Profile(){
                             {...register('location')}
                         />
 
-                        <label htmlFor="city">Cidade:</label>
-                        <BaseInput
-                            id="city"
-                            type="text"
-                            value={cityDisplay}
-                            placeholder="Cidade não vinculada"
-                            readOnly
-                            disabled
-                        />
+                        {permission !== 'motoboy' && <>
+                            <label htmlFor="city">Cidade:</label>
+                            <BaseInput
+                                id="city"
+                                type="text"
+                                value={cityDisplay}
+                                placeholder="Cidade não vinculada"
+                                readOnly
+                                disabled
+                            />
+                        </>}
 
                         <ContainerButtons>
                             {(permission === 'shopkeeper' || permission === 'shopkeeperadmin') &&

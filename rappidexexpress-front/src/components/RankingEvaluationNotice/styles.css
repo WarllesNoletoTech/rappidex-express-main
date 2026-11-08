@@ -1,0 +1,19 @@
+/* Aviso de ranking: a mesma identidade preto / amarelo da interface Rappidex. */
+.rpx-evaluation-dialog { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:min(92vw,450px); max-height:90vh; overflow-y:auto; outline:0; padding:30px 28px 26px; border-radius:20px; border:1px solid rgba(255,196,0,.32); border-top:4px solid #ffc400; background:linear-gradient(145deg,#292929 0%,#161616 100%); color:#f3f3f3; box-shadow:0 24px 70px rgba(0,0,0,.65); text-align:center; }
+.rpx-evaluation-trophy{height:62px;width:62px;border-radius:18px;display:grid;place-items:center;margin:0 auto 16px;background:rgba(255,196,0,.13);color:#ffc400;border:1px solid rgba(255,196,0,.3)}
+.rpx-evaluation-kicker{display:inline-flex;align-items:center;gap:6px;color:#ffc400;font-size:.73rem;font-weight:800;letter-spacing:.12em}
+.rpx-evaluation-dialog h2{font-size:1.35rem;line-height:1.25;margin:12px 0 8px;color:#fff;font-weight:800}
+.rpx-evaluation-subtitle{font-size:.92rem;line-height:1.55;color:#bcbcbc;margin-bottom:15px}
+.rpx-evaluation-score{display:flex;align-items:baseline;justify-content:center;gap:8px;margin:15px auto 17px;color:#ffc400}
+.rpx-evaluation-score strong{font-size:3rem;line-height:1;font-weight:850;font-variant-numeric:tabular-nums}
+.rpx-evaluation-score span{font-weight:700}
+.rpx-evaluation-detail{text-align:left;border:1px solid #3c3c3c;border-radius:13px;background:#171717;padding:16px}
+.rpx-evaluation-label{display:block;color:#ffc400;text-transform:uppercase;font-weight:750;font-size:.69rem;letter-spacing:.08em;margin:0 0 6px}
+.rpx-evaluation-detail p{line-height:1.4;color:#eee;margin:0 0 13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.rpx-evaluation-detail small{display:block;color:#aaa;font-size:.78rem;line-height:1.4;margin-top:6px}
+.rpx-evaluation-more{font-size:.8rem;color:#ccc;margin-top:12px}
+.rpx-evaluation-error{background:#4a1f1f;border:1px solid #9b3b3b;border-radius:8px;color:#ffe0e0;padding:8px 10px;margin-top:14px;font-size:.85rem}
+.rpx-evaluation-ack{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:11px;background:#ffc400;color:#111;padding:14px 18px;font-size:.98rem;font-weight:800;margin-top:18px;transition:background .15s ease}
+.rpx-evaluation-ack:hover:not(:disabled){background:#ffd43b}
+.rpx-evaluation-ack:disabled{opacity:.65;cursor:wait}
+@media(max-width:480px){.rpx-evaluation-dialog{padding:22px 17px 19px}.rpx-evaluation-dialog h2{font-size:1.19rem}.rpx-evaluation-score strong{font-size:2.5rem}}
