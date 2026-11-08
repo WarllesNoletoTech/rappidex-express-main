@@ -139,7 +139,7 @@ export function NewDelivery(){
             if(canceled)return
             setRatesUnavailable(false)
             setNeighborhoodMode(response.data.feeMode==='neighborhood')
-            setAvailableNeighborhoods((response.data.rates||[]).filter((r:any)=>r.active&&r.enabled&&typeof r.motoboyFee==='number'&&Number.isFinite(r.motoboyFee)).map((r:any)=>r.name))
+            setAvailableNeighborhoods((response.data.rates||[]).filter((r:any)=>r.active&&r.enabled&&Number.isFinite(Number(r.deliveryFee))&&Number(r.deliveryFee)>=Number(response.data.platformServiceFee||0)).map((r:any)=>r.name))
         }).catch(()=>{if(!canceled){setRatesUnavailable(true);setAvailableNeighborhoods([])}})
         return () => {canceled=true}
     },[establishmentId,shopkeepers]);

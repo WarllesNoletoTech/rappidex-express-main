@@ -97,10 +97,14 @@ type DeliveryCountsDelta = {
   assigned: number;
 };
 
+const moneyAmountDashboard = (value:number) => Number(value||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+
 type AdminFinancialCounts = {
   totalEntregas: number;
   valorAdminPorEntrega: number;
   totalValorAdmin: number;
+  totalReceitaPlataforma?: number;
+  totalRepasseMotoboys?: number;
   feeMode?: 'fixed' | 'neighborhood';
   pendingFeeCount?: number;
   cityId?: string | null;
@@ -763,6 +767,8 @@ export function Dashboard() {
       totalEntregas: 0,
       valorAdminPorEntrega: 0,
       totalValorAdmin: 0,
+      totalReceitaPlataforma: 0,
+      totalRepasseMotoboys: 0,
       cityId: null,
       cityName: null,
       createdIn: null,
@@ -1141,6 +1147,8 @@ export function Dashboard() {
           valorAdminPorEntrega:
             Number(countsResponse.data?.valorAdminPorEntrega) || 0,
           totalValorAdmin: Number(countsResponse.data?.totalValorAdmin) || 0,
+          totalReceitaPlataforma: Number(countsResponse.data?.totalReceitaPlataforma) || 0,
+          totalRepasseMotoboys: Number(countsResponse.data?.totalRepasseMotoboys) || 0,
           feeMode: countsResponse.data?.feeMode || 'fixed',
           pendingFeeCount: Number(countsResponse.data?.pendingFeeCount) || 0,
           cityId: countsResponse.data?.cityId ?? null,
@@ -2052,7 +2060,7 @@ export function Dashboard() {
               <strong>{adminFinancialCounts.totalEntregas}</strong>
             </PerformanceMetric>
             <PerformanceMetric>
-              <span>{adminFinancialCounts.feeMode==='neighborhood'?'Taxa adicional Rappidex':'Valor por entrega'}</span>
+              <span>{adminFinancialCounts.feeMode==='neighborhood'?'Taxa administrativa Rappidex':'Valor por entrega'}</span>
               <PerformanceValue>{formattedAdminDeliveryFee}</PerformanceValue>
             </PerformanceMetric>
             <PerformanceMetric>
@@ -2060,6 +2068,16 @@ export function Dashboard() {
               <PerformanceValue>{formattedAdminTotal}</PerformanceValue>
               {Boolean(adminFinancialCounts.pendingFeeCount)&&<small>{adminFinancialCounts.pendingFeeCount} entrega(s) aguardando definição do bairro</small>}
             </PerformanceMetric>
+            {adminFinancialCounts.feeMode==='neighborhood' && <>
+              <PerformanceMetric>
+                <span>Receita administrativa (entregas concluídas)</span>
+                <PerformanceValue>{moneyAmountDashboard(adminFinancialCounts.totalReceitaPlataforma||0)}</PerformanceValue>
+              </PerformanceMetric>
+              <PerformanceMetric>
+                <span>Repasse aos motoboys (entregas concluídas)</span>
+                <PerformanceValue>{moneyAmountDashboard(adminFinancialCounts.totalRepasseMotoboys||0)}</PerformanceValue>
+              </PerformanceMetric>
+            </>}
             <PerformanceMetric>
               <span>Cidade</span>
               <strong>

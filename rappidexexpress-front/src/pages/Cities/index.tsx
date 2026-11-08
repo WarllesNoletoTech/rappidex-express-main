@@ -347,9 +347,9 @@ export function Cities() {
             </CitySelect>
             {feeMode === 'neighborhood' && (
               <>
-                <label>Taxa adicional da plataforma cobrada do lojista por entrega (R$)</label>
+                <label>Taxa administrativa retida pelo Rappidex por entrega (R$)</label>
                 <CityInput value={platformServiceFee} onChange={(event) => setPlatformServiceFee(event.target.value)} placeholder="Ex.: 3,00" />
-                <p>Valor somado à tarifa do bairro configurada pela loja. O repasse ao motoboy é configurado individualmente no cadastro de bairros da cidade.</p>
+                <p>Valor retido pelo Rappidex DENTRO da taxa total que o lojista repassa. O motoboy recebe a diferença entre a tarifa da loja e esta taxa administrativa.</p>
               </>
             )}
             <CityInput
@@ -437,7 +437,7 @@ export function Cities() {
                     <CityName>{city.name}</CityName>
                     <CityState>{getStateLabel(city.state)}</CityState>
                     <CityState>
-                      Modalidade: {city.feeMode === 'neighborhood' ? 'Por bairro' : 'Fixa'} — {city.feeMode === 'neighborhood' ? 'Tarifa adicional Rappidex' : 'Valor cobrado do estabelecimento'}:{" "}
+                      Modalidade: {city.feeMode === 'neighborhood' ? 'Por bairro' : 'Fixa'} — {city.feeMode === 'neighborhood' ? 'Taxa administrativa retida' : 'Valor cobrado do estabelecimento'}:{" "}
                       {(city.feeMode === 'neighborhood' ? city.platformServiceFee : city.deliveryFeeValue) !== undefined
                         ? Number(city.feeMode === 'neighborhood' ? city.platformServiceFee : city.deliveryFeeValue).toLocaleString("pt-BR", {
                             style: "currency",
@@ -470,7 +470,7 @@ export function Cities() {
 
                   <CityState>
                     {city.feeMode === 'neighborhood'
-                      ? `${city.neighborhoodCount??0} bairro(s) cadastrado(s). Configure o repasse do motoboy por bairro e, em seguida, as tarifas de cada loja.`
+                      ? `${city.neighborhoodCount??0} bairro(s) cadastrado(s). Configure os bairros da cidade e os valores totais cobrados por cada loja.`
                       : 'O cadastro de bairros pode ser preparado antes de ativar a tarifa por bairro.'}
                   </CityState>
                   <CityCardActions>

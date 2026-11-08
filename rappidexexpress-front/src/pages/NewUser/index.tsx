@@ -150,6 +150,13 @@ export function NewUser() {
       return;
     }
 
+    const configuredCity=cities.find(c=>c.id===cityIdToSubmit);
+    if ((selectedType==='shopkeeper'||selectedType==='shopkeeperadmin') && configuredCity?.feeMode==='neighborhood' &&
+      storeRateDraft.some(r=>r.cityActive&&r.enabled&&r.deliveryFee<Number(configuredCity.platformServiceFee||0))) {
+      alert('A tarifa integral de cada bairro atendido deve ser igual ou superior à taxa administrativa da cidade.');
+      setLoading(false);return;
+    }
+
     try {
       const response = await api.post("/user", {
         ...data,
