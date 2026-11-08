@@ -8,6 +8,7 @@ export interface City {
   deliveryFeeValue?: number;
   feeMode?: 'fixed' | 'neighborhood';
   platformServiceFee?: number;
+  neighborhoodCount?: number;
   monthlyFeeValue?: number;
   pixKey?: string;
 }

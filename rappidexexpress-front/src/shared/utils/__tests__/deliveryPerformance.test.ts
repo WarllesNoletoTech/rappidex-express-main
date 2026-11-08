@@ -240,3 +240,17 @@ test("soma o valor do motoboy pela cidade sem afetar a quantidade", () => {
 
   assert.equal(calculateReportsMotoboyTotal(reports, [city]), 17);
 });
+
+test('usa o repasse por bairro congelado em cada entrega, não a tarifa fixa atual',()=>{
+  const a=report({id:'bairro1',motoboyDeliveryFee:6,feeResolutionStatus:'RESOLVED'});
+  const b=report({id:'bairro2',motoboyDeliveryFee:11.25,feeResolutionStatus:'RESOLVED'});
+  assert.equal(getMotoboyDeliveryValue(a,[city]),6);
+  assert.equal(calculateReportsMotoboyTotal([a,b],[city]),17.25);
+  const performance=calculateDeliveryPerformance([a,b],'motoboy-1',[city],new Date(2026,5,2,12));
+  assert.deepEqual(performance.week,{count:2,total:17.25});
+});
+
+test('não inventa repasse para entregas pendentes de tarifação',()=>{
+  const pending=report({feeResolutionStatus:'PENDING'});
+  assert.equal(getMotoboyDeliveryValue(pending,[city]),0);
+});

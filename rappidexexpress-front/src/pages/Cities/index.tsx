@@ -341,7 +341,7 @@ export function Cities() {
               <>
                 <label>Taxa adicional da plataforma cobrada do lojista por entrega (R$)</label>
                 <CityInput value={platformServiceFee} onChange={(event) => setPlatformServiceFee(event.target.value)} placeholder="Ex.: 3,00" />
-                <p>Valor somado à tarifa do bairro configurada pela loja. O repasse ao motoboy permanece independente.</p>
+                <p>Valor somado à tarifa do bairro configurada pela loja. O repasse ao motoboy é configurado individualmente no cadastro de bairros da cidade.</p>
               </>
             )}
             <CityInput
@@ -362,12 +362,12 @@ export function Cities() {
               disabled={isSubmitting}
             />
 
-            <CityInput
+            {feeMode==='fixed'?<CityInput
               placeholder="Valor pago ao entregador por entrega. Ex: 7,00"
               value={deliveryValue}
               onChange={(event) => setDeliveryValue(event.target.value)}
               disabled={isSubmitting}
-            />
+            />:<p>O valor pago ao motoboy deve ser configurado individualmente para cada bairro em <b>Gerenciar bairros</b>, depois de salvar a cidade.</p>}
 
             <CityInput
               placeholder="Chave PIX da cidade. Ex: financeiro@rappidex.com.br, CPF, CNPJ, telefone ou chave aleatória"
@@ -447,10 +447,8 @@ export function Cities() {
                         : "não configurado"}
                     </CityState>
                     <CityState>
-                      Valor pago ao entregador por entrega:{" "}
-                      {city.deliveryValue?.trim()
-                        ? `R$ ${city.deliveryValue}`
-                        : "não configurado"}
+                      {city.feeMode === 'neighborhood'?'Repasse ao entregador':'Valor pago ao entregador por entrega'}:{" "}
+                      {city.feeMode === 'neighborhood'?'configurar individualmente por bairro':(city.deliveryValue?.trim()?`R$ ${city.deliveryValue}`:'não configurado')}
                     </CityState>
                     <CityState>
                       Chave PIX: {city.pixKey?.trim() || "não configurada"}
@@ -464,7 +462,7 @@ export function Cities() {
 
                   <CityState>
                     {city.feeMode === 'neighborhood'
-                      ? 'Cadastre os bairros da cidade e, em seguida, configure as tarifas de cada loja.'
+                      ? `${city.neighborhoodCount??0} bairro(s) cadastrado(s). Configure o repasse do motoboy por bairro e, em seguida, as tarifas de cada loja.`
                       : 'O cadastro de bairros pode ser preparado antes de ativar a tarifa por bairro.'}
                   </CityState>
                   <CityCardActions>

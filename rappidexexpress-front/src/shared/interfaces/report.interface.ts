@@ -6,6 +6,9 @@ export interface Report {
     addressComplement?: string;
     addressReference?: string;
     addressNeighborhood?: string;
+    motoboyDeliveryFee?: number;
+    neighborhoodDeliveryFee?: number;
+    feeResolutionStatus?: 'FIXED' | 'RESOLVED' | 'PENDING';
     addressCity?: string;
     addressState?: string;
     addressZipCode?: string;

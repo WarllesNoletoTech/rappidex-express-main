@@ -70,7 +70,7 @@ export function NewDelivery(){
             return
         }
         if(neighborhoodMode && !availableNeighborhoods.includes(addressNeighborhood)){
-            alert('Selecione um bairro ativo e com tarifa configurada para esta loja.')
+            alert('Selecione um bairro atendido pela loja e com repasse do motoboy configurado pela administração.')
             setLoading(false)
             return
         }
@@ -139,7 +139,7 @@ export function NewDelivery(){
             if(canceled)return
             setRatesUnavailable(false)
             setNeighborhoodMode(response.data.feeMode==='neighborhood')
-            setAvailableNeighborhoods((response.data.rates||[]).filter((r:any)=>r.active&&r.enabled).map((r:any)=>r.name))
+            setAvailableNeighborhoods((response.data.rates||[]).filter((r:any)=>r.active&&r.enabled&&typeof r.motoboyFee==='number'&&Number.isFinite(r.motoboyFee)).map((r:any)=>r.name))
         }).catch(()=>{if(!canceled){setRatesUnavailable(true);setAvailableNeighborhoods([])}})
         return () => {canceled=true}
     },[establishmentId,shopkeepers]);

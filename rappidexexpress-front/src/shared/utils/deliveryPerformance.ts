@@ -202,7 +202,16 @@ export function getMotoboyDeliveryValue(report: Report, cities: City[]) {
     }
   });
 
-  return getCityDeliveryValue(report, deliveryValueByCityId);
+  return getReportMotoboyValue(report, deliveryValueByCityId);
+}
+
+function getReportMotoboyValue(report:Report,deliveryValueByCityId:Map<string,number>):number{
+  // O valor efetivo da entrega sempre prevalece sobre a tarifa atual da cidade.
+  // Pedidos antigos sem snapshot mantêm o valor legado; pendentes não recebem valor inventado.
+  if(report.feeResolutionStatus==='PENDING')return 0;
+  if(typeof report.motoboyDeliveryFee==='number' && Number.isFinite(report.motoboyDeliveryFee))
+    return report.motoboyDeliveryFee;
+  return getCityDeliveryValue(report,deliveryValueByCityId);
 }
 
 export function calculateReportsMotoboyTotal(
@@ -259,7 +268,7 @@ export function calculateDeliveryPerformance(
     const createdAt = getCreatedDateForReportPeriod(report);
     if (!createdAt) return;
 
-    const deliveryValue = getCityDeliveryValue(report, deliveryValueByCityId);
+    const deliveryValue = getReportMotoboyValue(report, deliveryValueByCityId);
 
     if (isWithinRange(createdAt, weekRange)) {
       performance.week.count += 1;

@@ -25,6 +25,8 @@ import {
     NotificationButton,
 } from "./styles";
 import { Loader } from '../../components/Loader';
+import { StoreRatesEditor } from '../../components/StoreRatesEditor';
+import '../regional-admin.css';
 
 
 const ProfileFormValidationSchema = zod.object({
@@ -55,6 +57,7 @@ export function Profile(){
     const [profileImage, setProfileImage] = useState('')
     const [cityDisplay, setCityDisplay] = useState('')
     const [cityId, setCityId] = useState('')
+    const [myUserId, setMyUserId] = useState('')
     const [isPushEnabled, setIsPushEnabled] = useState(false)
     const [formValues, setFormValues] = useState({
         name: '',
@@ -170,6 +173,7 @@ export function Profile(){
             })
 
             setUsername(response.data.user)
+            setMyUserId(response.data.id)
             setProfileImage(response.data.profileImage)
 
             const userCityId = response.data?.cityId
@@ -367,6 +371,7 @@ export function Profile(){
                             </ChangePasswordButton>
                         </ContainerButtons>
                     </FormContainer>
+                    {(permission === 'shopkeeper' || permission === 'shopkeeperadmin') && cityId && myUserId && <StoreRatesEditor cityId={cityId} storeId={myUserId} allowDirectSave heading="Bairros e taxas do estabelecimento"/>}
                 </>
             }
         </Container>
