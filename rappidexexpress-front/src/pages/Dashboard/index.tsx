@@ -139,6 +139,7 @@ type DeliveryCardProps = {
   previewObservation: string;
   shouldShowObservationPreview: boolean;
   canManageReleaseOrder: boolean;
+  canManageAssignedDelivery: boolean;
   canFinishFromIfood: boolean;
 };
 
@@ -211,16 +212,23 @@ const getGoogleMapsLinkFromAddress = (
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(normalizedAddress)}`;
 };
 
-function isAdminOrSuperadminUser(permission: string | null) {
-  return permission === UserType.ADMIN || permission === UserType.SUPERADMIN;
-}
-
 function isDeliveryAssigned(report: Report) {
-  return Boolean(report.motoboyId || report.motoboyName || report.motoboy);
+  return Boolean(
+    report.motoboyId ||
+      report.motoboyName ||
+      report.motoboy ||
+      [
+        StatusDelivery.ONCOURSE,
+        StatusDelivery.ARRIVED_AT_STORE,
+        StatusDelivery.COLLECTED,
+        StatusDelivery.ARRIVED_AT_DESTINATION,
+        StatusDelivery.AWAITING_CODE,
+      ].includes(report.status as StatusDelivery),
+  );
 }
 
-function canCancelDelivery(report: Report, permission: string | null) {
-  return isAdminOrSuperadminUser(permission) || !isDeliveryAssigned(report);
+function canCancelDelivery(report: Report, canManageAssignedDelivery: boolean) {
+  return canManageAssignedDelivery || !isDeliveryAssigned(report);
 }
 
 function playMoneySound() {
@@ -298,6 +306,7 @@ const DeliveryCard = memo(function DeliveryCard({
   previewObservation,
   shouldShowObservationPreview,
   canManageReleaseOrder,
+  canManageAssignedDelivery,
   canFinishFromIfood,
 }: DeliveryCardProps) {
   const getClientVisualStatus = (delivery: Report) => {
@@ -372,9 +381,15 @@ const DeliveryCard = memo(function DeliveryCard({
       StatusDelivery.AWAITING_CODE,
     ].includes(report.status as StatusDelivery);
 
-  const canAdvanceDelivery = canManageReleaseOrder || canMotoboyAdvanceDelivery;
-  const canShowDeliveryCodeInput = canManageReleaseOrder || isMotoboy;
-  const canShowCancelButton = canCancelDelivery(report, permission);
+  const canStoreOperate =
+    canManageReleaseOrder &&
+    (canManageAssignedDelivery || !isDeliveryAssigned(report));
+  const canAdvanceDelivery = canStoreOperate || canMotoboyAdvanceDelivery;
+  const canShowDeliveryCodeInput = canStoreOperate || isMotoboy;
+  const canShowCancelButton = canCancelDelivery(
+    report,
+    canManageAssignedDelivery,
+  );
 
   return (
     <Delivery
@@ -615,14 +630,14 @@ const DeliveryCard = memo(function DeliveryCard({
         </InfoSection>
       </ContainerInfo>
 
-      {(canManageReleaseOrder ||
+      {(canStoreOperate ||
         (shouldShowDeliveryCodeInput && canShowDeliveryCodeInput) ||
         canAdvanceDelivery ||
         (!isMotoboy && report.status === StatusDelivery.PENDING)) && (
         <OperationalPanel>
           <SectionTitle>Operação</SectionTitle>
 
-          {canManageReleaseOrder && (
+          {canStoreOperate && (
             <SelectContainer>
               <label htmlFor={motoboySelectId}>Motoboy</label>
               <select
@@ -660,7 +675,7 @@ const DeliveryCard = memo(function DeliveryCard({
           )}
 
           <OrderActions>
-            {canManageReleaseOrder &&
+            {canStoreOperate &&
               report.status !== StatusDelivery.PENDING && (
                 <>
                   <OrderButton typebutton={true} onClick={() => onSave(report)}>
@@ -737,6 +752,7 @@ function areDeliveryCardPropsEqual(
     prev.motoboys === next.motoboys &&
     prev.isUpdating === next.isUpdating &&
     prev.canManageReleaseOrder === next.canManageReleaseOrder &&
+    prev.canManageAssignedDelivery === next.canManageAssignedDelivery &&
     prev.canFinishFromIfood === next.canFinishFromIfood &&
     prev.previewObservation === next.previewObservation &&
     prev.shouldShowObservationPreview === next.shouldShowObservationPreview
@@ -813,6 +829,10 @@ export function Dashboard() {
   );
   const [isCurrentUserSuperAdmin, setIsCurrentUserSuperAdmin] =
     useState<boolean>(false);
+  const [canManageAssignedDelivery, setCanManageAssignedDelivery] =
+    useState<boolean>(
+      permission === UserType.ADMIN || permission === UserType.SUPERADMIN,
+    );
   const defaultAdminCounterRange = useMemo(() => getRappidexWeekYmdRange(), []);
   const [adminCounterDateRange, setAdminCounterDateRange] = useState(
     () => defaultAdminCounterRange,
@@ -1343,6 +1363,11 @@ export function Dashboard() {
       setCanViewReleaseTab(nextCanViewReleaseTab);
       setCanManageReleaseOrder(nextCanManageReleaseOrder);
       setIsCurrentUserSuperAdmin(currentType === UserType.SUPERADMIN);
+      // Somente o tipo real do usuário, nunca a permissão secundária, autoriza
+      // troca de motoboy e cancelamento após atribuição.
+      setCanManageAssignedDelivery(
+        currentType === UserType.ADMIN || currentType === UserType.SUPERADMIN,
+      );
     } catch (error) {
       console.error("Erro ao carregar usuário atual:", error);
     }
@@ -1413,6 +1438,15 @@ export function Dashboard() {
   }
   async function handlerNextStep(report: Report) {
     if (isDeliveryUpdating(report.id)) {
+      return;
+    }
+
+    if (
+      !isCurrentUserMotoboy &&
+      !canManageAssignedDelivery &&
+      isDeliveryAssigned(report)
+    ) {
+      alert("Entrega já atribuída: somente administradores podem alterá-la.");
       return;
     }
 
@@ -1572,6 +1606,11 @@ export function Dashboard() {
       return;
     }
 
+    if (!canManageAssignedDelivery && isDeliveryAssigned(report)) {
+      alert("Entrega já atribuída: somente administradores podem trocar o motoboy.");
+      return;
+    }
+
     const selectedMotoboy = getSelectedMotoboy(report)?.trim();
 
     if (!selectedMotoboy) {
@@ -1612,6 +1651,10 @@ export function Dashboard() {
     if (isDeliveryUpdating(report.id)) {
       return;
     }
+    if (!canCancelDelivery(report, canManageAssignedDelivery)) {
+      alert("Entrega já atribuída: somente administradores podem cancelar.");
+      return;
+    }
 
     setConfirmAction({
       type: "cancel",
@@ -1622,6 +1665,10 @@ export function Dashboard() {
 
   function openDeleteConfirmation(report: Report) {
     if (isDeliveryUpdating(report.id)) {
+      return;
+    }
+    if (!canCancelDelivery(report, canManageAssignedDelivery)) {
+      alert("Entrega já atribuída: somente administradores podem cancelar.");
       return;
     }
 
@@ -1645,6 +1692,7 @@ export function Dashboard() {
     if (!confirmAction) return;
 
     const report = confirmAction.report;
+    if (!canCancelDelivery(report, canManageAssignedDelivery)) return;
 
     try {
       startUpdatingDelivery(report.id);
@@ -1677,6 +1725,7 @@ export function Dashboard() {
     if (!confirmAction) return;
 
     const report = confirmAction.report;
+    if (!canCancelDelivery(report, canManageAssignedDelivery)) return;
 
     if (isDeliveryUpdating(report.id)) {
       return;
@@ -2281,6 +2330,7 @@ export function Dashboard() {
                   report.destinationObservationConfirmed,
                 )}
                 canManageReleaseOrder={canManageReleaseOrder}
+                canManageAssignedDelivery={canManageAssignedDelivery}
                 canFinishFromIfood={isCurrentUserSuperAdmin}
               />
             ))}
