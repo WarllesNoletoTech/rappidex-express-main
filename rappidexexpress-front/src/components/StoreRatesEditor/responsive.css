@@ -1,0 +1,49 @@
+/* V17: tabela de tarifas por estabelecimento legível e editável no Android. */
+.rpx-shop-rates { min-width: 0; width: 100%; }
+.rpx-shop-rates > * { max-width: 100%; }
+.rpx-shop-rates .rpx-rate-row {
+  display: grid;
+  grid-template-columns: minmax(140px,1fr) auto minmax(105px,135px) minmax(105px,135px);
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+}
+.rpx-shop-rates .rpx-rate-name { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.rpx-shop-rates .rpx-rate-name b { overflow-wrap: anywhere; line-height: 1.35; }
+.rpx-shop-rates .rpx-rate-name small { color: #aaa; }
+.rpx-shop-rates .rpx-rate-toggle { white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.rpx-shop-rates .rpx-rate-toggle input[type="checkbox"] { width: 19px; height: 19px; flex-shrink: 0; }
+.rpx-shop-rates .rpx-rate-field { display: block; min-width: 0; font-size: .85rem; }
+.rpx-shop-rates .rpx-rate-field input {
+  min-width: 0; width: 100%; margin: 5px 0 0;
+  height: 44px; border-radius: 8px; border: 1px solid #555;
+  background: #151515; color: #f5f5f5; padding: 9px 10px; font-size: 16px;
+}
+.rpx-shop-rates .rpx-rate-search { margin: 16px 0 10px; }
+.rpx-shop-rates .rpx-rate-search input { font-size: 16px; }
+.rpx-shop-rates .rpx-rate-search small { font-size: .8rem; color: #bbb; }
+.rpx-shop-rates input[type="file"] { display: block; max-width: 100%; min-width: 0; }
+.rpx-shop-rates input[type="file"]::file-selector-button {
+  border: 1px solid #666; border-radius: 7px; background: #393939;
+  color: #fff; padding: 9px 12px; margin-right: 8px;
+}
+@media (max-width: 690px) {
+  .rpx-shop-rates { padding: 12px 10px; }
+  .rpx-shop-rates .rpx-rate-list { display: grid; gap: 10px; }
+  .rpx-shop-rates .rpx-rate-row {
+    display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px;
+    padding: 12px; border: 1px solid #464646; border-radius: 12px;
+    background: #191919;
+  }
+  .rpx-shop-rates .rpx-rate-name { grid-column: 1/-1; }
+  .rpx-shop-rates .rpx-rate-toggle { grid-column: 1/-1; padding: 2px 0; min-height: 32px; }
+  .rpx-shop-rates .rpx-rate-field { grid-column: auto; font-size: .8rem; }
+  .rpx-shop-rates .rpx-rate-field input { font-size: 16px; width: 100%; }
+  .rpx-shop-rates > button { width: 100%; margin: 12px 0 0; min-height: 46px; }
+  .rpx-shop-rates button.rpx-small { min-height: 44px; }
+  .rpx-shop-rates input[type="file"] { width: 100%; }
+}
+@media (max-width: 355px) {
+  .rpx-shop-rates .rpx-rate-row { gap: 7px; padding: 10px 8px; }
+  .rpx-shop-rates .rpx-rate-field input { padding: 8px; }
+}

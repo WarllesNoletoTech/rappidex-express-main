@@ -6,6 +6,7 @@ import api from '../../services/api';
 import { parseNeighborhoodCsv, NeighborhoodCsvRow } from './csv';
 import { StoreRatesEditor } from '../../components/StoreRatesEditor';
 import '../regional-admin.css';
+import './responsive.css';
 
 type Neighborhood={id:string;name:string;active:boolean};
 type City={id:string;name:string;state:string;feeMode?:string};
@@ -26,6 +27,7 @@ export function Neighborhoods(){
   const [csv,setCsv]=useState<NeighborhoodCsvRow[]>([]);
   const [csvFile,setCsvFile]=useState('');
   const [editingId,setEditingId]=useState<string|null>(null);
+  const [neighborhoodSearch,setNeighborhoodSearch]=useState('');
   const [draft,setDraft]=useState({name:'',active:true});
   const [saving,setSaving]=useState(false);
   const [loading,setLoading]=useState(false);
@@ -50,11 +52,12 @@ export function Neighborhoods(){
     finally{setLoading(false);}
   }
   useEffect(()=>{
-    setNeighborhoods([]);setCsv([]);setInput('');setEditingId(null);setError('');setMessage('');
+    setNeighborhoods([]);setCsv([]);setInput('');setEditingId(null);setNeighborhoodSearch('');setError('');setMessage('');
     void reload(cityId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[cityId,admin]);
   const selectedCity=cities.find(c=>c.id===cityId);
+  const displayedNeighborhoods=neighborhoods.filter(n=>n.name.toLocaleLowerCase('pt-BR').includes(neighborhoodSearch.trim().toLocaleLowerCase('pt-BR')));
   async function addRows(items:NeighborhoodCsvRow[]){
     if(!admin||!cityId||!items.length)return;
     setSaving(true);setError('');setMessage('');
@@ -114,7 +117,7 @@ export function Neighborhoods(){
       setPending(old=>old.filter(item=>item.id!==id));setMessage('Tarifa do pedido confirmada.');
     }catch(e:any){setError(e.response?.data?.message||'Erro ao confirmar tarifa.');}
   }
-  return <main className="rpx-page">
+  return <main className="rpx-page rpx-neighborhood-page">
     {admin&&<button className="rpx-small" onClick={()=>navigate('/cidades')}>← Voltar para Cidades</button>}
     <h1>Bairros e taxas de entrega</h1>
     <p>A cidade define a lista de bairros. <b>Cada estabelecimento tem taxas de entrega e repasses próprios</b>, configurados exclusivamente por admin e superadmin.</p>
@@ -133,33 +136,41 @@ export function Neighborhoods(){
       <p>Não há sincronização automática. Adicione os bairros manualmente ou importe um arquivo CSV. Você pode editar, desativar ou excluir bairros a qualquer momento.</p>
       <label>Adicionar bairros (um por linha, vírgula ou ponto e vírgula)</label>
       <textarea rows={3} value={input} onChange={e=>setInput(e.target.value)} placeholder={'Centro\nBacuri\nSanta Rita'}/>
-      <button disabled={saving||!input.trim()} onClick={()=>void addNames()}>Adicionar bairros</button>
-      <div className="rpx-embedded" style={{marginTop:16,marginBottom:16}}>
+      <button className="rpx-mobile-primary" disabled={saving||!input.trim()} onClick={()=>void addNames()}>Adicionar bairros</button>
+      <div className="rpx-embedded rpx-import-panel" style={{marginTop:16,marginBottom:16}}>
         <h3>Importar bairros por CSV</h3>
         <p>Colunas: <code>bairro;ativo</code>. Importa apenas nomes e situação dos bairros. Tarifas e repasses serão definidos separadamente para cada estabelecimento.</p>
         <button className="rpx-small" type="button" onClick={downloadModel}>Baixar modelo CSV</button>
-        <input aria-label="Escolher arquivo CSV de bairros" type="file" accept=".csv,.txt,text/csv,text/plain" onChange={e=>void loadCsv(e)} />
+        <input className="rpx-csv-input" aria-label="Escolher arquivo CSV de bairros" type="file" accept=".csv,.txt,text/csv,text/plain" onChange={e=>void loadCsv(e)} />
         {csv.length>0&&<><p><b>{csvFile}</b>: {csv.length} linha(s) válidas. Prévia:</p>
           <div className="rpx-list">{csv.slice(0,8).map((x,i)=><div key={`${x.name}-${i}`} className="rpx-list-row"><span>{x.name}</span><small>{x.active===false?'Desativado':'Ativo'}</small></div>)}</div>
-          <button disabled={saving} onClick={()=>void addRows(csv)}>Confirmar importação de {csv.length} bairros</button>
+          <button className="rpx-mobile-primary" disabled={saving} onClick={()=>void addRows(csv)}>Confirmar importação de {csv.length} bairros</button>
           <button className="rpx-small" disabled={saving} onClick={()=>{setCsv([]);setCsvFile('');}}>Cancelar importação</button>
         </>}
       </div>
       {loading&&<p>Carregando bairros...</p>}
       {!loading&&!neighborhoods.length&&<div className="rpx-notice">Nenhum bairro cadastrado. Use o formulário ou o CSV acima.</div>}
-      <div className="rpx-list">{neighborhoods.map(n=><div key={n.id} className="rpx-list-row" style={{alignItems:'start'}}>
+      {neighborhoods.length>0&&<div className="rpx-neighborhood-tools">
+        <label htmlFor="rpx-neighborhood-search">Buscar bairro cadastrado</label>
+        <input id="rpx-neighborhood-search" type="search" value={neighborhoodSearch} onChange={e=>setNeighborhoodSearch(e.target.value)} placeholder="Digite o nome do bairro"/>
+        <small>{displayedNeighborhoods.length} de {neighborhoods.length} bairro(s)</small>
+      </div>}
+      {neighborhoods.length>0&&displayedNeighborhoods.length===0&&<p>Nenhum bairro encontrado com este nome.</p>}
+      <div className="rpx-list rpx-neighborhood-list">{displayedNeighborhoods.map(n=><div key={n.id} className="rpx-list-row rpx-neighborhood-item">
         {editingId===n.id?<>
-          <div style={{flex:'1 1 230px'}}>
+          <div className="rpx-neighborhood-editor">
             <label>Nome do bairro</label><input value={draft.name} maxLength={110} onChange={e=>setDraft(d=>({...d,name:e.target.value}))}/>
             <label className="rpx-check"><input type="checkbox" checked={draft.active} onChange={e=>setDraft(d=>({...d,active:e.target.checked}))}/> Ativo</label>
-            <div style={{display:'flex',gap:8,marginTop:8}}><button className="rpx-small" disabled={saving||!draft.name.trim()} onClick={()=>void saveDraft(n.id)}>Salvar alterações</button>
+            <div className="rpx-edit-actions"><button className="rpx-small" disabled={saving||!draft.name.trim()} onClick={()=>void saveDraft(n.id)}>Salvar alterações</button>
             <button className="rpx-small" disabled={saving} onClick={()=>setEditingId(null)}>Cancelar</button></div>
           </div>
         </>:<>
-          <span style={{flex:'1 1 240px'}}><b>{n.name}</b><br/><small>{n.active?'Ativo':'Desativado'}</small></span>
-          <button className="rpx-small" disabled={saving} onClick={()=>startEdit(n)}>Editar</button>
-          <button className="rpx-small" disabled={saving} onClick={()=>void update(n.id,{active:!n.active})}>{n.active?'Desativar':'Ativar'}</button>
-          <button className="rpx-small" disabled={saving} onClick={()=>void remove(n)}>Excluir</button>
+          <div className="rpx-neighborhood-name"><b>{n.name}</b><small className={n.active?'rpx-active-status':'rpx-inactive-status'}>{n.active?'Ativo':'Desativado'}</small></div>
+          <div className="rpx-neighborhood-actions">
+            <button className="rpx-small" type="button" disabled={saving} onClick={()=>startEdit(n)}>Editar</button>
+            <button className="rpx-small" type="button" disabled={saving} onClick={()=>void update(n.id,{active:!n.active})}>{n.active?'Desativar':'Ativar'}</button>
+            <button className="rpx-small rpx-danger" type="button" disabled={saving} onClick={()=>void remove(n)}>Excluir</button>
+          </div>
         </>}
       </div>)}</div>
       <p><small>Tarifas não são cadastradas na cidade. Configure-as abaixo para cada estabelecimento.</small></p>
@@ -179,9 +190,9 @@ export function Neighborhoods(){
     </section>}
     {admin&&pending.length>0&&<section className="rpx-card"><h2>Entregas com bairro pendente</h2>
       <p>Pedidos sem tarifa definida precisam de confirmação antes de entrar no fechamento.</p>
-      {pending.map(d=><div className="rpx-list-row" key={d.id}>
+      {pending.map(d=><div className="rpx-list-row rpx-pending-item" key={d.id}>
         <span><b>{d.storeName}</b> — {d.clientName}<br/><small>Bairro: {d.addressNeighborhood||'não informado'} • {d.status}</small></span>
-        <select style={{maxWidth:260,margin:0}} value={resolveNeighborhood[d.id]||''} onChange={e=>setResolveNeighborhood(old=>({...old,[d.id]:e.target.value}))}>
+        <select value={resolveNeighborhood[d.id]||''} onChange={e=>setResolveNeighborhood(old=>({...old,[d.id]:e.target.value}))}>
           <option value="">Confirmar bairro</option>
           {neighborhoods.filter(n=>n.active).map(n=><option key={n.id} value={n.id}>{n.name}</option>)}
         </select><button disabled={!resolveNeighborhood[d.id]} onClick={()=>void resolveFee(d.id)}>Confirmar</button>

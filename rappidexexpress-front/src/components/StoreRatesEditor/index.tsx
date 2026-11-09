@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { DeliveryContext } from '../../context/DeliveryContext';
 import { parseStoreCsv, normalizeStoreNeighborhood } from './storeCsv';
+import './responsive.css';
 
 export type ShopRateDraft={neighborhoodId:string;name:string;cityActive:boolean;enabled:boolean;deliveryFee:number|null;motoboyFee:number|null};
 type Props={cityId:string;storeId?:string;onChange?:(draft:ShopRateDraft[])=>void;allowDirectSave?:boolean;heading?:string};
@@ -28,6 +29,7 @@ export function StoreRatesEditor({cityId,storeId,allowDirectSave=false,heading='
   const [loading,setLoading]=useState(false);
   const [saving,setSaving]=useState(false);
   const [importMessage,setImportMessage]=useState('');
+  const [rateSearch,setRateSearch]=useState('');
   useEffect(()=>{
     if(!cityId || !storeId){setRows([]);return;}
     let active=true;setLoading(true);setError('');setMessage('');
@@ -87,7 +89,8 @@ export function StoreRatesEditor({cityId,storeId,allowDirectSave=false,heading='
     }catch(e:any){setError(e.response?.data?.message||e.message||'Não foi possível salvar as tarifas.');}
     finally{setSaving(false);}
   }
-  return <section className="rpx-embedded"><h3>{heading}</h3>
+  const visibleRows=rows.filter(r=>normalizeStoreNeighborhood(r.name).includes(normalizeStoreNeighborhood(rateSearch.trim())));
+  return <section className="rpx-embedded rpx-shop-rates"><h3>{heading}</h3>
     {error&&<div className="rpx-error" role="alert">{error}</div>}
     {message&&<div className="rpx-notice">{message}</div>}
     {!cityId?<p>Selecione a cidade.</p>:!storeId?<p>Salve o cadastro da loja primeiro. Depois, abra o perfil para configurar seus bairros e valores.</p>:loading?<p>Carregando valores...</p>:mode==='fixed'?<p>Esta cidade utiliza taxa fixa. Não há tarifas individuais por bairro.</p>:<>
@@ -100,13 +103,19 @@ export function StoreRatesEditor({cityId,storeId,allowDirectSave=false,heading='
         <small>A importação apenas preenche a tabela desta loja. Clique em Salvar para confirmar.</small>
       </div>}
       {!rows.length&&<p>Nenhum bairro cadastrado na cidade. {admin&&<button className="rpx-small" type="button" onClick={()=>navigate(`/cidades/${cityId}/bairros`)}>Cadastrar bairros</button>}</p>}
-      <div className="rpx-list">{rows.map(r=><div key={r.neighborhoodId} className="rpx-list-row" style={{alignItems:'center',gap:12}}>
-        <span style={{flex:'1 1 160px'}}><b>{r.name}</b><br/><small>{r.active?'Ativo na cidade':'Inativo na cidade'}</small></span>
-        <label className="rpx-check" style={{whiteSpace:'nowrap'}}><input type="checkbox" checked={r.enabled} disabled={!admin||!allowDirectSave||!r.active||saving} onChange={e=>update(r.neighborhoodId,{enabled:e.target.checked})}/> Atender</label>
-        <label style={{flex:'0 1 140px'}}>Entrega R$
+      {rows.length>0&&<div className="rpx-rate-search">
+        <label htmlFor={`rpx-rate-search-${storeId}`}>Buscar bairro desta loja</label>
+        <input id={`rpx-rate-search-${storeId}`} type="search" value={rateSearch} onChange={e=>setRateSearch(e.target.value)} placeholder="Filtrar os bairros"/>
+        <small>{visibleRows.length} de {rows.length} bairro(s)</small>
+      </div>}
+      {rows.length>0&&visibleRows.length===0&&<p>Nenhum bairro encontrado com este nome.</p>}
+      <div className="rpx-list rpx-rate-list">{visibleRows.map(r=><div key={r.neighborhoodId} className="rpx-list-row rpx-rate-row">
+        <div className="rpx-rate-name"><b>{r.name}</b><small>{r.active?'Ativo na cidade':'Inativo na cidade'}</small></div>
+        <label className="rpx-check rpx-rate-toggle"><input type="checkbox" checked={r.enabled} disabled={!admin||!allowDirectSave||!r.active||saving} onChange={e=>update(r.neighborhoodId,{enabled:e.target.checked})}/> Atender</label>
+        <label className="rpx-rate-field">Entrega R$
           <input aria-label={`Taxa de entrega ${r.name}`} type="text" inputMode="decimal" value={r.deliveryFee} placeholder="10,00" disabled={!admin||!allowDirectSave||saving} onChange={e=>update(r.neighborhoodId,{deliveryFee:e.target.value})}/>
         </label>
-        <label style={{flex:'0 1 140px'}}>Motoboy R$
+        <label className="rpx-rate-field">Motoboy R$
           <input aria-label={`Repasse motoboy ${r.name}`} type="text" inputMode="decimal" value={r.motoboyFee} placeholder="7,00" disabled={!admin||!allowDirectSave||saving} onChange={e=>update(r.neighborhoodId,{motoboyFee:e.target.value})}/>
         </label>
       </div>)}</div>

@@ -1,0 +1,76 @@
+/* V17: Gerenciamento de bairros - versão mobile-first sem afetar outras telas. */
+.rpx-neighborhood-page,
+.rpx-neighborhood-page .rpx-card,
+.rpx-neighborhood-page .rpx-embedded { min-width: 0; max-width: 100%; }
+.rpx-neighborhood-page { overflow-wrap: anywhere; }
+.rpx-neighborhood-page .rpx-card { overflow: hidden; }
+.rpx-neighborhood-page .rpx-card > * { max-width: 100%; }
+.rpx-neighborhood-page .rpx-card button { white-space: normal; overflow-wrap: anywhere; }
+.rpx-neighborhood-page .rpx-neighborhood-tools,
+.rpx-neighborhood-page .rpx-rate-search { margin: 16px 0 10px; }
+.rpx-neighborhood-page .rpx-neighborhood-tools small,
+.rpx-neighborhood-page .rpx-rate-search small { color: #aaa; font-size: .8rem; }
+.rpx-neighborhood-page .rpx-neighborhood-list { display: grid; gap: 10px; }
+.rpx-neighborhood-page .rpx-neighborhood-item {
+  border: 1px solid #424242;
+  border-radius: 12px;
+  background: #1b1b1b;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.rpx-neighborhood-page .rpx-neighborhood-name { min-width: 0; flex: 1 1 210px; display: flex; flex-direction: column; gap: 6px; }
+.rpx-neighborhood-page .rpx-neighborhood-name b { color: #f4f4f4; line-height: 1.3; overflow-wrap: anywhere; }
+.rpx-neighborhood-page .rpx-neighborhood-name small { font-weight: 650; font-size: .75rem; }
+.rpx-neighborhood-page .rpx-active-status { color: #79d5a7; }
+.rpx-neighborhood-page .rpx-inactive-status { color: #bcbcbc; }
+.rpx-neighborhood-page .rpx-neighborhood-actions { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+.rpx-neighborhood-page .rpx-neighborhood-actions .rpx-small { margin: 0; min-height: 40px; }
+.rpx-neighborhood-page .rpx-neighborhood-actions .rpx-danger { color: #ffb4ae; border: 1px solid #814541; background: #382321; }
+.rpx-neighborhood-page .rpx-neighborhood-editor { min-width: 0; width: 100%; }
+.rpx-neighborhood-page .rpx-neighborhood-editor input[type="text"] { width: 100%; }
+.rpx-neighborhood-page .rpx-edit-actions { display: flex; align-items: stretch; gap: 8px; margin-top: 12px; }
+.rpx-neighborhood-page .rpx-edit-actions button { margin: 0; min-height: 44px; }
+.rpx-neighborhood-page .rpx-edit-actions button:first-child { background: #ffc400; color: #151515; }
+.rpx-neighborhood-page .rpx-import-panel code { white-space: normal; overflow-wrap: anywhere; }
+.rpx-neighborhood-page .rpx-csv-input,
+.rpx-neighborhood-page .rpx-import-panel input[type="file"] { min-width: 0; width: 100%; }
+.rpx-neighborhood-page .rpx-import-panel input[type="file"]::file-selector-button {
+  border: 1px solid #666; border-radius: 7px; background: #393939; color: #fff;
+  padding: 9px 12px; margin-right: 8px; cursor: pointer;
+}
+.rpx-neighborhood-page .rpx-pending-item > span { min-width: 0; flex: 1 1 260px; }
+.rpx-neighborhood-page .rpx-pending-item select { flex: 1 1 180px; width: auto; min-width: 0; margin: 0; }
+.rpx-neighborhood-page .rpx-pending-item button { margin: 0; min-height: 44px; }
+
+@media (max-width: 680px) {
+  .rpx-neighborhood-page { padding: 12px 8px 64px; width: 100%; }
+  .rpx-neighborhood-page h1 { font-size: clamp(1.25rem, 5vw, 1.55rem); line-height: 1.25; }
+  .rpx-neighborhood-page .rpx-card { border-radius: 14px; padding: 14px 12px; margin: 12px 0; }
+  .rpx-neighborhood-page .rpx-card p { font-size: .92rem; }
+  .rpx-neighborhood-page .rpx-import-panel { padding: 12px 10px; }
+  .rpx-neighborhood-page select,
+  .rpx-neighborhood-page input:not([type="checkbox"]),
+  .rpx-neighborhood-page textarea { font-size: 16px; min-height: 44px; }
+  .rpx-neighborhood-page textarea { min-height: 94px; resize: vertical; }
+  .rpx-neighborhood-page .rpx-mobile-primary,
+  .rpx-neighborhood-page .rpx-import-panel > button,
+  .rpx-neighborhood-page .rpx-shop-rates > button { display: block; width: 100%; margin: 8px 0; min-height: 44px; }
+  .rpx-neighborhood-page .rpx-neighborhood-item { display: block; padding: 12px 10px; }
+  .rpx-neighborhood-page .rpx-neighborhood-name { margin-bottom: 12px; }
+  .rpx-neighborhood-page .rpx-neighborhood-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; width: 100%; }
+  .rpx-neighborhood-page .rpx-neighborhood-actions .rpx-small { width: 100%; padding: 10px 4px; min-width: 0; font-size: .82rem; min-height: 44px; }
+  .rpx-neighborhood-page .rpx-edit-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .rpx-neighborhood-page .rpx-edit-actions button { padding: 10px 5px; font-size: .85rem; }
+  .rpx-neighborhood-page .rpx-check input { width: 20px; height: 20px; flex-shrink: 0; }
+  .rpx-neighborhood-page .rpx-pending-item { display: grid; grid-template-columns: minmax(0,1fr); gap: 9px; }
+  .rpx-neighborhood-page .rpx-pending-item select,
+  .rpx-neighborhood-page .rpx-pending-item button { width: 100%; max-width: 100%; }
+  .rpx-neighborhood-page .rpx-pending-item > span { width: 100%; }
+}
+@media (max-width: 345px) {
+  .rpx-neighborhood-page .rpx-neighborhood-actions { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .rpx-neighborhood-page .rpx-neighborhood-actions button:last-child { grid-column: 1/-1; }
+}
