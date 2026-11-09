@@ -54,6 +54,10 @@ export function Profile(){
     const [loadingEnableNotification, setLoadingEnableNotification] = useState(false)
     const [loadingDisableNotification, setLoadingDisableNotification] = useState(false)
     const [username, setUsername] = useState('')
+    const [motoproCode,setMotoproCode]=useState('')
+    const [motoproExpiry,setMotoproExpiry]=useState('')
+    const [motoproLinked,setMotoproLinked]=useState(false)
+    const [motoproBusy,setMotoproBusy]=useState(false)
     const [profileImage, setProfileImage] = useState('')
     const [cityDisplay, setCityDisplay] = useState('')
     const [cityId, setCityId] = useState('')
@@ -73,6 +77,23 @@ export function Profile(){
         values: formValues,
     })
 
+    async function loadMotoPro(){
+        if(permission!=='motoboy')return
+        try{const r=await api.get('/motopro/status');setMotoproLinked(!!r.data.linked)}catch{/* opcional */}
+    }
+    async function generateMotoProCode(){
+        setMotoproBusy(true)
+        try{const r=await api.post('/motopro/link-code');setMotoproCode(r.data.code);setMotoproExpiry(r.data.expiresAt)}
+        catch(err:any){alert(err.response?.data?.message||'Erro ao gerar código MotoPRO.')}
+        finally{setMotoproBusy(false)}
+    }
+    async function revokeMotoPro(){
+        if(!window.confirm('Revogar acesso do MotoPRO aos seus ganhos?'))return
+        setMotoproBusy(true)
+        try{await api.delete('/motopro/link');setMotoproLinked(false);setMotoproCode('')}
+        catch(err:any){alert(err.response?.data?.message||'Falha ao revogar acesso.')}
+        finally{setMotoproBusy(false)}
+    }
     function handleConfig() {
         navigate('/configuracao')
     }
@@ -226,6 +247,8 @@ export function Profile(){
         getMyData()
     }, [])
 
+    useEffect(() => {void loadMotoPro()}, [permission])
+
     useEffect(() => {
         syncPushStatus()
     }, [])
@@ -373,6 +396,19 @@ export function Profile(){
                             </ChangePasswordButton>
                         </ContainerButtons>
                     </FormContainer>
+                    {permission==='motoboy'&&<section style={{marginTop:20,padding:20,border:'1px solid #c5a060',borderRadius:12,maxWidth:640}}>
+                        <h3>Conectar ao MotoPRO</h3>
+                        <p>Autorize a importação dos repasses de suas entregas sem entregar sua senha do Rappidex.</p>
+                        {motoproLinked&&<p style={{color:'#198050',fontWeight:700}}>Conta vinculada ao MotoPRO.</p>}
+                        <button type="button" onClick={generateMotoProCode} disabled={motoproBusy} style={{padding:12,borderRadius:8,background:'#efae31',color:'#111',fontWeight:700}}>{motoproBusy?'Aguarde...':'Gerar código de conexão'}</button>
+                        {motoproCode&&<div style={{marginTop:15,overflowWrap:'anywhere'}}>
+                            <p>Código válido por 10 minutos:</p>
+                            <div style={{padding:10,background:'#f7eedb',color:'#111',fontFamily:'monospace',borderRadius:7}}>{motoproCode}</div>
+                            <button type="button" style={{padding:9,marginTop:8}} onClick={()=>navigator.clipboard.writeText(motoproCode).then(()=>alert('Código copiado')).catch(()=>alert('Copie o código acima.'))}>Copiar código</button>
+                            <p style={{fontSize:12}}>Expira: {new Date(motoproExpiry).toLocaleString('pt-BR')}</p>
+                        </div>}
+                        {motoproLinked&&<button type="button" onClick={revokeMotoPro} disabled={motoproBusy} style={{padding:9,marginTop:12}}>Revogar conexão MotoPRO</button>}
+                    </section>}
                     {(permission === 'shopkeeper' || permission === 'shopkeeperadmin') && cityId && myUserId && <StoreRatesEditor cityId={cityId} storeId={myUserId} allowDirectSave heading="Bairros e taxas deste estabelecimento (consulta)"/>}
                 </>
             }
