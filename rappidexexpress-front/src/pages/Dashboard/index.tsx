@@ -384,7 +384,14 @@ const DeliveryCard = memo(function DeliveryCard({
   const canStoreOperate =
     canManageReleaseOrder &&
     (canManageAssignedDelivery || !isDeliveryAssigned(report));
-  const canAdvanceDelivery = canStoreOperate || canMotoboyAdvanceDelivery;
+  // Atribuição já salva em AGUARDANDO_LIBERACAO: o lojista pode apenas
+  // liberar para o motoboy existente; seleção, troca e cancelamento ficam bloqueados.
+  const canReleaseAssignedDelivery =
+    canManageReleaseOrder &&
+    report.status === StatusDelivery.AWAITING_RELEASE &&
+    isDeliveryAssigned(report);
+  const canAdvanceDelivery =
+    canStoreOperate || canReleaseAssignedDelivery || canMotoboyAdvanceDelivery;
   const canShowDeliveryCodeInput = canStoreOperate || isMotoboy;
   const canShowCancelButton = canCancelDelivery(
     report,
@@ -1444,7 +1451,8 @@ export function Dashboard() {
     if (
       !isCurrentUserMotoboy &&
       !canManageAssignedDelivery &&
-      isDeliveryAssigned(report)
+      isDeliveryAssigned(report) &&
+      report.status !== StatusDelivery.AWAITING_RELEASE
     ) {
       alert("Entrega já atribuída: somente administradores podem alterá-la.");
       return;
@@ -1456,11 +1464,24 @@ export function Dashboard() {
     let newStatus = "";
 
     if (report.status === StatusDelivery.AWAITING_RELEASE) {
-      await api.put(
-        `/delivery/${report.id}/release`,
-        selectedMotoboy ? { motoboyId: selectedMotoboy } : {},
-      );
-      await Promise.all([refreshDashboard(false), getMotoboys()]);
+      try {
+        startUpdatingDelivery(report.id);
+        await api.put(
+          `/delivery/${report.id}/release`,
+          // Depois de salvo, não reenviar seleção local: a API usa o motoboy
+          // já registrado e impede qualquer tentativa de troca na liberação.
+          isDeliveryAssigned(report)
+            ? {}
+            : selectedMotoboy
+              ? { motoboyId: selectedMotoboy }
+              : {},
+        );
+        await Promise.all([refreshDashboard(false), getMotoboys()]);
+      } catch (error: any) {
+        alert(error.response?.data?.message || "Erro ao liberar pedido.");
+      } finally {
+        stopUpdatingDelivery(report.id);
+      }
       return;
     }
 
