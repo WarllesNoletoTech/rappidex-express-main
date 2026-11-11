@@ -26,6 +26,7 @@ import {
 } from "./styles";
 import { Loader } from '../../components/Loader';
 import { StoreRatesEditor } from '../../components/StoreRatesEditor';
+import { useNeighborhoodFeeVisibility } from '../../hooks/useNeighborhoodFeeVisibility';
 import '../regional-admin.css';
 
 
@@ -46,6 +47,7 @@ type ProfileFormData = zod.infer<typeof ProfileFormValidationSchema>
 
 export function Profile(){
     const { token, permission } = useContext(DeliveryContext)
+    const showNeighborhoodFees = useNeighborhoodFeeVisibility()
     api.defaults.headers.Authorization = `Bearer ${token}`
 
     const navigate = useNavigate()
@@ -339,7 +341,7 @@ export function Profile(){
                         </>}
 
                         <ContainerButtons>
-                            {(permission === 'shopkeeper' || permission === 'shopkeeperadmin') &&
+                            {showNeighborhoodFees &&
                                 <NotificationButton type="button" onClick={() => navigate('/bairros')} backgroundColor={'gray-400'}>
                                     Consultar bairros e taxas da loja
                                 </NotificationButton>}
@@ -409,7 +411,7 @@ export function Profile(){
                         </div>}
                         {motoproLinked&&<button type="button" onClick={revokeMotoPro} disabled={motoproBusy} style={{padding:9,marginTop:12}}>Revogar conexão MotoPRO</button>}
                     </section>}
-                    {(permission === 'shopkeeper' || permission === 'shopkeeperadmin') && cityId && myUserId && <StoreRatesEditor cityId={cityId} storeId={myUserId} allowDirectSave heading="Bairros e taxas deste estabelecimento (consulta)"/>}
+                    {showNeighborhoodFees && cityId && myUserId && <StoreRatesEditor cityId={cityId} storeId={myUserId} allowDirectSave heading="Bairros e taxas deste estabelecimento (consulta)"/>}
                 </>
             }
         </Container>

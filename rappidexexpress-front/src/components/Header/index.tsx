@@ -28,9 +28,11 @@ import {
   RappidexLogo,
 } from "./styles";
 import { DeliveryContext } from "../../context/DeliveryContext";
+import { useNeighborhoodFeeVisibility } from "../../hooks/useNeighborhoodFeeVisibility";
 
 export function Header() {
   const { logout, permission } = useContext(DeliveryContext);
+  const showNeighborhoodFees = useNeighborhoodFeeVisibility();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -96,7 +98,7 @@ export function Header() {
         <NavLink to="/ranking" title="Ranking semanal">
           <Trophy size={24} />
         </NavLink>
-        {canCreateDelivery && !canAccessCities && <NavLink to="/bairros" title="Bairros e taxas">
+        {showNeighborhoodFees && <NavLink to="/bairros" title="Bairros e taxas">
           <MapPin size={24} />
         </NavLink>}
         {canCreateDelivery && (
@@ -167,7 +169,7 @@ export function Header() {
                 <MobileMenuLink to="/ranking" onClick={closeMobileMenu}>
                   <Trophy size={21} /><span>Ranking semanal</span>
                 </MobileMenuLink>
-                {canCreateDelivery && !canAccessCities && <MobileMenuLink to="/bairros" onClick={closeMobileMenu}>
+                {showNeighborhoodFees && <MobileMenuLink to="/bairros" onClick={closeMobileMenu}>
                   <MapPin size={21} /><span>Bairros e taxas</span>
                 </MobileMenuLink>}
                 {canCreateDelivery && (

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ChangeEvent, useContext, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { DeliveryContext } from '../../context/DeliveryContext';
 import api from '../../services/api';
 import { parseNeighborhoodCsv, NeighborhoodCsvRow } from './csv';
@@ -116,6 +116,11 @@ export function Neighborhoods(){
     try{await api.put(`/regions/${cityId}/deliveries/${id}/resolve-fee`,{neighborhoodId:resolveNeighborhood[id]});
       setPending(old=>old.filter(item=>item.id!==id));setMessage('Tarifa do pedido confirmada.');
     }catch(e:any){setError(e.response?.data?.message||'Erro ao confirmar tarifa.');}
+  }
+  // Lojistas de cidades com taxa fixa não têm gestão/consulta por bairro.
+  // A área administrativa permanece acessível para configurar bairros.
+  if (!admin && selectedCity && selectedCity.feeMode !== 'neighborhood') {
+    return <Navigate to="/perfil" replace />;
   }
   return <main className="rpx-page rpx-neighborhood-page">
     {admin&&<button className="rpx-small" onClick={()=>navigate('/cidades')}>← Voltar para Cidades</button>}
