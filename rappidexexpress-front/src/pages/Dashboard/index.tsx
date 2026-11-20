@@ -122,6 +122,7 @@ type DeliveryCardProps = {
   isCurrentUserMotoboy: boolean;
   selectedMotoboy: string;
   motoboys: Motoboy[];
+  motoboysLoadError: string;
   isUpdating: boolean;
   onSelectMotoboy: (reportId: string, motoboyId: string) => void;
   onSave: (report: Report) => void;
@@ -289,6 +290,7 @@ const DeliveryCard = memo(function DeliveryCard({
   isCurrentUserMotoboy,
   selectedMotoboy,
   motoboys,
+  motoboysLoadError,
   isUpdating,
   onSelectMotoboy,
   onSave,
@@ -654,12 +656,18 @@ const DeliveryCard = memo(function DeliveryCard({
                 onChange={(e) => onSelectMotoboy(report.id, e.target.value)}
               >
                 <option value="">Selecione o motoboy</option>
+                {motoboys.length === 0 && (
+                  <option value="" disabled>
+                    {motoboysLoadError ? "Erro ao carregar motoboys" : "Nenhum motoboy cadastrado nesta cidade"}
+                  </option>
+                )}
                 {motoboys.map((motoboy: Motoboy) => (
                   <option key={motoboy.id} value={motoboy.id}>
                     {motoboy.name}
                   </option>
                 ))}
               </select>
+              {motoboysLoadError && <small role="alert">{motoboysLoadError}</small>}
             </SelectContainer>
           )}
 
@@ -757,6 +765,7 @@ function areDeliveryCardPropsEqual(
     prev.selectedMotoboy === next.selectedMotoboy &&
     prev.deliveryCode === next.deliveryCode &&
     prev.motoboys === next.motoboys &&
+    prev.motoboysLoadError === next.motoboysLoadError &&
     prev.isUpdating === next.isUpdating &&
     prev.canManageReleaseOrder === next.canManageReleaseOrder &&
     prev.canManageAssignedDelivery === next.canManageAssignedDelivery &&
@@ -784,6 +793,8 @@ export function Dashboard() {
     useState<DeliveryPerformance>({ count: 0, total: 0 });
   const [cities, setCities] = useState<City[]>([]);
   const [motoboys, setMotoboys] = useState<Motoboy[]>([]);
+  const [motoboysLoadError, setMotoboysLoadError] = useState("");
+  const motoboysRequestIdRef = useRef(0);
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [assignedCount, setAssignedCount] = useState<number>(0);
   const [waitingReleaseCount, setWaitingReleaseCount] = useState<number>(0);
@@ -1301,15 +1312,28 @@ export function Dashboard() {
   }, []);
 
   const getMotoboys = useCallback(async () => {
-    if (!canManageReleaseOrder && permission !== UserType.MOTOBOY) return;
+    const requestId = ++motoboysRequestIdRef.current;
+    if (!canManageReleaseOrder && permission !== UserType.MOTOBOY) {
+      setMotoboys([]);
+      setMotoboysLoadError("");
+      return;
+    }
 
     try {
       const motoboysRes = await api.get("/user/motoboys");
-      setMotoboys(motoboysRes.data ?? []);
-    } catch (error) {
+      // Descarta respostas atrasadas da cidade anterior após troca de cidade.
+      if (requestId !== motoboysRequestIdRef.current) return;
+      setMotoboys(Array.isArray(motoboysRes.data) ? motoboysRes.data : []);
+      setMotoboysLoadError("");
+    } catch (error: any) {
+      if (requestId !== motoboysRequestIdRef.current) return;
       console.error("Erro ao carregar motoboys:", error);
+      setMotoboys([]); // Não exibe motoboys da cidade anterior após erro.
+      setMotoboysLoadError(
+        error.response?.data?.message || "Não foi possível carregar os motoboys desta cidade.",
+      );
     }
-  }, [canManageReleaseOrder, permission]);
+  }, [canManageReleaseOrder, permission, currentCityId]);
 
   const getMyself = useCallback(async () => {
     try {
@@ -1399,6 +1423,8 @@ export function Dashboard() {
     try {
       // Alteração persistente: equivale a clicar em Selecionar na aba Cidades.
       await saveAdminSelectedCity(currentAdminUserId, nextCityId);
+      setMotoboys([]); // Lista anterior não pode permanecer na nova cidade.
+      setMotoboysLoadError("");
       setCurrentCityId(nextCityId);
       // O efeito de refreshDashboard usa currentCityId para recarregar
       // entregas, contadores e financeiro. O socket também troca de cidade.
@@ -1572,7 +1598,7 @@ export function Dashboard() {
         updatedReport.motoboyId !== data.motoboyId
       ) {
         await Promise.all([refreshDashboard(false), getMotoboys()]);
-        alert("Essa entrega já foi atribuída a outro entregador.");
+        alert("Essa entrega já foi atribuída por outro entregador.");
         return;
       }
 
@@ -1596,7 +1622,19 @@ export function Dashboard() {
         return nextState;
       });
     } catch (error: any) {
-      alert(error.response?.data?.message || "Erro ao atualizar pedido.");
+      const errorMessage = String(error.response?.data?.message || "Erro ao atualizar pedido.");
+      const wasAssignedElsewhere = isCurrentUserMotoboy &&
+        newStatus === StatusDelivery.ONCOURSE &&
+        (/já (?:foi )?atribuíd/i.test(errorMessage) || /somente administradores podem trocar/i.test(errorMessage));
+      alert(wasAssignedElsewhere
+        ? "Essa entrega já foi atribuída por outro entregador."
+        : errorMessage);
+      if (wasAssignedElsewhere) {
+        // Recarrega o painel: o pedido não deve permanecer entre as entregas livres.
+        void refreshDashboard(false).catch((refreshError) =>
+          console.error("Falha ao atualizar entregas livres:", refreshError),
+        );
+      }
     } finally {
       stopUpdatingDelivery(report.id);
     }
@@ -2332,6 +2370,7 @@ export function Dashboard() {
                 isCurrentUserMotoboy={isCurrentUserMotoboy}
                 selectedMotoboy={getSelectedMotoboy(report)}
                 motoboys={motoboys}
+                motoboysLoadError={motoboysLoadError}
                 isUpdating={isDeliveryUpdating(report.id)}
                 onSelectMotoboy={handleSelectMotoboy}
                 onSave={handlerSave}
